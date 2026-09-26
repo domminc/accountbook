@@ -1,3 +1,4 @@
+import { resolveDatabaseUrl } from "./db-url.mjs";
 import postgres from "postgres";
 
 type Sql = postgres.Sql<{ bigint: number; date: string }>;
@@ -9,8 +10,8 @@ const globalForDb = globalThis as unknown as { __accountbookSql?: Sql };
 export function db(): Sql {
   if (globalForDb.__accountbookSql) return globalForDb.__accountbookSql;
 
-  const url = process.env.DATABASE_URL;
-  if (!url) throw new Error("DATABASE_URL 환경 변수가 필요합니다. .env.example 을 참고하세요.");
+  const { url } = resolveDatabaseUrl();
+  if (!url) throw new Error("DATABASE_URL 환경 변수가 필요합니다. .env.example 을 참고하세요. (/api/health 에서 확인)");
 
   const sql = postgres(url, {
     // Supabase 트랜잭션 풀러(pgbouncer)에서도 동작하도록 prepared statement를 쓰지 않는다

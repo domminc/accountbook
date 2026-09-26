@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { resolveSessionSecret } from "./db-url.mjs";
 
 export const SESSION_COOKIE = "ab_session";
 export const SESSION_MAX_AGE = 60 * 60 * 24 * 30; // 30일
@@ -6,11 +7,12 @@ export const SESSION_MAX_AGE = 60 * 60 * 24 * 30; // 30일
 type Payload = { uid: string; exp: number };
 
 function secret() {
-  const s = process.env.SESSION_SECRET;
-  if (!s || s.length < 32) {
+  // SESSION_SECRET 이 없으면 Vercel Supabase 연동 등 이미 있는 비밀값에서 만든다 (src/lib/db-url.mjs)
+  const { secret } = resolveSessionSecret();
+  if (!secret) {
     throw new Error("SESSION_SECRET 환경 변수(32자 이상)가 필요합니다. .env.example 을 참고하세요.");
   }
-  return s;
+  return secret;
 }
 
 function sign(data: string) {

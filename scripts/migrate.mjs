@@ -7,6 +7,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import postgres from "postgres";
+import { resolveDatabaseUrl } from "../src/lib/db-url.mjs";
 
 const DIR = join(import.meta.dirname, "..", "supabase", "migrations");
 
@@ -26,7 +27,8 @@ const MARKERS = {
   "20261004000000_sms_inbound.sql": "select to_regclass('public.inbound_tokens') is not null as ok",
 };
 
-const url = process.env.DATABASE_URL;
+const { url, source } = resolveDatabaseUrl();
+if (url) console.log(`migrate: DB 주소 — ${source}`);
 if (!url) {
   // 배포는 계속한다: 사이트의 /api/health 에서 무엇이 빠졌는지 볼 수 있게
   console.warn("migrate: 경고 — DATABASE_URL 환경 변수가 없어 DB 적용을 건너뜀. /api/health 에서 확인하세요.");
