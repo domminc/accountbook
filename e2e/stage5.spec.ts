@@ -95,6 +95,6 @@ test("배포 점검 주소는 로그인 없이 DB·환경 변수 상태를 알�
   expect(res.status()).toBe(200);
   const json = await res.json();
   expect(json).toMatchObject({ 상태: "정상", DB: "접속됨", 표: "모두 있음" });
-  expect(json.주소_모양).toContain(":****@");
+  expect(json.쓰는_DB_주소).toContain(":****@");
   expect(JSON.stringify(json)).not.toContain(process.env.SESSION_SECRET ?? "never");
 });
