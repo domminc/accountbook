@@ -25,19 +25,22 @@ export function EditableRow(p: Props) {
   const hasControls = p.rename || p.moveUp || p.moveDown || p.toggleHidden || p.remove || p.children;
   return (
     <details className="px-4 py-3">
-      <summary className="flex cursor-pointer list-none items-center gap-2 [&::-webkit-details-marker]:hidden">
-        <span className={`font-medium ${p.hidden ? "text-muted line-through" : ""}`}>{p.name}</span>
-        {p.badge ? <span className="rounded bg-background px-1.5 py-0.5 text-xs text-muted">{p.badge}</span> : null}
-        {p.hidden ? <span className="text-xs text-muted">숨김</span> : null}
-        {/* 이 줄(details)의 열림 상태만 본다. 바깥 줄이 열려 있어도 영향받지 않게 직계 선택자로 쓴다. */}
-        {hasControls ? (
-          <span className="ml-auto text-sm text-muted [details[open]>summary>&]:hidden">편집</span>
-        ) : null}
-        {hasControls ? (
-          <span className="ml-auto hidden text-sm text-muted [details[open]>summary>&]:inline">닫기</span>
-        ) : null}
+      <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+        <span className="flex items-center gap-2">
+          <span className={`font-medium ${p.hidden ? "text-muted line-through" : ""}`}>{p.name}</span>
+          {p.badge ? <span className="rounded bg-background px-1.5 py-0.5 text-xs text-muted">{p.badge}</span> : null}
+          {p.hidden ? <span className="text-xs text-muted">숨김</span> : null}
+          {/* 이 줄(details)의 열림 상태만 본다. 바깥 줄이 열려 있어도 영향받지 않게 직계 선택자로 쓴다. */}
+          {hasControls ? (
+            <span className="ml-auto text-sm text-muted [details[open]>summary>span>&]:hidden">편집</span>
+          ) : null}
+          {hasControls ? (
+            <span className="ml-auto hidden text-sm text-muted [details[open]>summary>span>&]:inline">닫기</span>
+          ) : null}
+        </span>
+        {/* 닫힌 details는 summary 밖 내용을 그리지 않으므로 미리보기는 summary 안에 둔다 */}
+        {p.preview ? <span className="mt-1 block [details[open]>summary>&]:hidden">{p.preview}</span> : null}
       </summary>
-      {p.preview ? <div className="mt-1 [details[open]>&]:hidden">{p.preview}</div> : null}
 
       {hasControls ? (
         <div className="mt-3 flex flex-col gap-3">

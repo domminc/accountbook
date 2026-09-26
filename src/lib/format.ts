@@ -6,8 +6,8 @@ export function formatPercent(ratio: number, digits = 1): string {
 }
 
 /** 달력 칸처럼 좁은 곳: 12000 → '1.2만' */
-export function formatCompact(amount: number): string {
-  return new Intl.NumberFormat("ko-KR", { notation: "compact", maximumFractionDigits: 1 }).format(amount);
+export function formatCompact(amount: number, fractionDigits = 1): string {
+  return new Intl.NumberFormat("ko-KR", { notation: "compact", maximumFractionDigits: fractionDigits }).format(amount);
 }
 
 /** 전월 대비: '+12,000' / '-3,000' / '0' */

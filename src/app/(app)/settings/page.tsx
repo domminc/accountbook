@@ -5,6 +5,7 @@ const LINKS = [
   { href: "/settings/categories", title: "카테고리", desc: "대분류·소분류 추가, 이름 변경, 순서, 숨김" },
   { href: "/settings/payment-methods", title: "지출방법", desc: "체크카드, 현금 등" },
   { href: "/settings/tags", title: "태그", desc: "과소비, 돌발지출 등 거래에 붙이는 표시" },
+  { href: "/settings/data", title: "데이터 가져오기·내보내기", desc: "구글 시트(xlsx) 가져오기, CSV 내보내기" },
 ];
 
 export default function SettingsPage() {

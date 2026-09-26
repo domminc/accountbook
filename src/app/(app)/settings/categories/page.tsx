@@ -71,12 +71,12 @@ function GroupRow({ group: g, variableIndex, variableCount }: { group: CategoryG
       remove={isVariable ? deleteGroup.bind(null, g.id) : undefined}
       removeConfirm={`"${g.name}" 대분류와 소분류를 모두 지울까요?`}
       preview={
-        <p className="text-sm text-muted">
+        <span className="text-sm text-muted">
           {g.categories
             .filter((c) => !c.isHidden)
             .map((c) => c.name)
             .join(" · ")}
-        </p>
+        </span>
       }
     >
       <div className="rounded-xl border border-border">
