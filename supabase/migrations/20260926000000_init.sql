@@ -1,6 +1,26 @@
 -- 가계부 기본 스키마 (MVP)
 -- 모든 데이터는 가구(households) 단위로 격리된다. RLS는 is_household_member()로 판단한다.
 -- 금액은 원 단위 정수(bigint)로 저장한다.
+--
+-- 앱 서버는 DB에 직접 접속하고, 요청마다 트랜잭션 안에서
+--   set_config('request.jwt.claim.sub', <사용자 id>, true); set local role authenticated;
+-- 를 실행한 뒤 쿼리한다. 그래서 RLS가 그대로 적용된다. (Supabase 없이 일반 PostgreSQL에서도 동작)
+
+-- ─────────────────────────────────────────────
+-- 역할 (Supabase에는 이미 있음)
+-- ─────────────────────────────────────────────
+do $$
+begin
+  if not exists (select 1 from pg_roles where rolname = 'anon') then
+    create role anon nologin;
+  end if;
+  if not exists (select 1 from pg_roles where rolname = 'authenticated') then
+    create role authenticated nologin;
+  end if;
+end;
+$$;
+
+grant usage on schema public to authenticated;
 
 -- ─────────────────────────────────────────────
 -- 타입
@@ -9,6 +29,25 @@ create type public.category_kind as enum ('income', 'saving', 'fixed_expense', '
 create type public.goal_kind as enum ('income', 'saving', 'expense');
 create type public.member_role as enum ('owner', 'member');
 create type public.reserve_direction as enum ('in', 'out');
+
+-- ─────────────────────────────────────────────
+-- 사용자
+-- ─────────────────────────────────────────────
+-- 지금은 아이디·비밀번호 로그인. auth_user_id는 나중에 구글·카카오(Supabase Auth) 계정을 연결할 때 쓴다.
+create table public.users (
+  id uuid primary key default gen_random_uuid(),
+  login_id text unique check (login_id ~ '^[a-z0-9_]{4,20}$'),
+  password_hash text,
+  auth_user_id uuid unique,
+  created_at timestamptz not null default now(),
+  check (login_id is null or password_hash is not null)
+);
+
+-- 현재 요청의 사용자 id (앱 서버가 트랜잭션마다 설정)
+create function public.current_user_id() returns uuid
+language sql stable as $$
+  select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid;
+$$;
 
 -- ─────────────────────────────────────────────
 -- 가구 · 구성원
@@ -21,7 +60,7 @@ create table public.households (
 
 create table public.members (
   household_id uuid not null references public.households (id) on delete cascade,
-  user_id uuid not null references auth.users (id) on delete cascade,
+  user_id uuid not null references public.users (id) on delete cascade,
   role public.member_role not null default 'member',
   display_name text not null check (length(trim(display_name)) between 1 and 30),
   created_at timestamptz not null default now(),
@@ -96,7 +135,7 @@ create table public.import_batches (
   file_name text not null,
   year int not null,
   summary jsonb not null default '{}'::jsonb,
-  created_by uuid references auth.users (id) on delete set null,
+  created_by uuid references public.users (id) on delete set null,
   created_at timestamptz not null default now(),
   unique (id, household_id)
 );
@@ -111,7 +150,7 @@ create table public.transactions (
   payment_method_id uuid,
   memo text check (memo is null or length(memo) <= 200),
   import_batch_id uuid,
-  created_by uuid references auth.users (id) on delete set null,
+  created_by uuid references public.users (id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (id, household_id),
@@ -193,7 +232,7 @@ create table public.reserve_entries (
   memo text check (memo is null or length(memo) <= 200),
   note text check (note is null or length(note) <= 200),
   import_batch_id uuid,
-  created_by uuid references auth.users (id) on delete set null,
+  created_by uuid references public.users (id) on delete set null,
   created_at timestamptz not null default now(),
   foreign key (reserve_category_id, household_id)
     references public.reserve_categories (id, household_id) on delete restrict,
@@ -252,7 +291,7 @@ create function public.is_household_member(target uuid) returns boolean
 language sql stable security definer set search_path = '' as $$
   select exists (
     select 1 from public.members
-    where household_id = target and user_id = (select auth.uid())
+    where household_id = target and user_id = (select public.current_user_id())
   );
 $$;
 
@@ -262,6 +301,8 @@ grant execute on function public.is_household_member(uuid) to authenticated;
 -- ─────────────────────────────────────────────
 -- RLS
 -- ─────────────────────────────────────────────
+-- users: 로그인 처리는 서버(테이블 소유자 권한)만 한다. 로그인 사용자 역할로는 읽을 수 없다.
+alter table public.users enable row level security;
 alter table public.households enable row level security;
 alter table public.members enable row level security;
 alter table public.category_groups enable row level security;
@@ -288,8 +329,8 @@ create policy households_update on public.households
 create policy members_select on public.members
   for select to authenticated using (public.is_household_member(household_id));
 create policy members_update_self on public.members
-  for update to authenticated using (user_id = (select auth.uid()))
-  with check (user_id = (select auth.uid()));
+  for update to authenticated using (user_id = (select public.current_user_id()))
+  with check (user_id = (select public.current_user_id()));
 
 -- 나머지 가구 데이터: 구성원이면 읽고 쓸 수 있다.
 do $$
@@ -313,6 +354,7 @@ $$;
 
 -- 테이블 권한: 로그인 사용자만 (행 단위 제한은 위 RLS). 비로그인(anon)은 접근 불가.
 grant select, insert, update, delete on all tables in schema public to authenticated;
+revoke all on public.users from authenticated;
 revoke all on all tables in schema public from anon;
 
 -- 구성원 역할 변경 방지: 표시 이름 외 컬럼은 수정 불가
@@ -374,7 +416,7 @@ revoke all on function public.seed_household_defaults(uuid) from public;
 create function public.create_household(household_name text, member_name text) returns uuid
 language plpgsql security definer set search_path = '' as $$
 declare
-  uid uuid := (select auth.uid());
+  uid uuid := (select public.current_user_id());
   new_id uuid;
 begin
   if uid is null then

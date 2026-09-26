@@ -1,10 +1,10 @@
--- 스키마 · RLS 테스트. scripts/test-db.sh 가 임시 Postgres에 auth_stub.sql → migrations → 이 파일 순서로 실행한다.
+-- 스키마 · RLS 테스트. scripts/test-db.sh 가 임시 Postgres에 migrations → 이 파일 순서로 실행한다.
 -- 실패하면 예외로 중단된다.
 \set ON_ERROR_STOP on
 
-insert into auth.users (id, email) values
-  ('00000000-0000-0000-0000-00000000000a', 'a@example.com'),
-  ('00000000-0000-0000-0000-00000000000b', 'b@example.com');
+insert into public.users (id, login_id, password_hash) values
+  ('00000000-0000-0000-0000-00000000000a', 'user_a', 'x'),
+  ('00000000-0000-0000-0000-00000000000b', 'user_b', 'x');
 
 -- 기대한 오류가 나는지 확인하는 도우미
 create function pg_temp.expect_error(stmt text, label text) returns void
@@ -40,6 +40,7 @@ set request.jwt.claim.sub to '00000000-0000-0000-0000-00000000000a';
 set role authenticated;
 
 select pg_temp.expect_error($$insert into public.households (name) values ('직접')$$, '가구 직접 생성 차단');
+select pg_temp.expect_error($$select password_hash from public.users$$, '로그인 사용자 역할로 users 조회 차단');
 
 select public.create_household('  우리집  ', '민수') as a_household \gset
 select pg_temp.assert((select name from public.households) = '우리집', '가구 이름 trim');

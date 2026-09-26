@@ -1,13 +1,14 @@
 "use client";
 
 import { useActionState } from "react";
-import { createHousehold, type OnboardingState } from "./actions";
+import type { ActionState } from "@/lib/action-state";
+import { inputClass as baseInputClass, primaryButtonClass } from "@/components/ui";
+import { createHousehold } from "./actions";
 
-const inputClass =
-  "mt-1 h-12 w-full rounded-xl border border-border bg-surface px-3 text-base outline-none focus:border-accent";
+const inputClass = `mt-1 ${baseInputClass}`;
 
 export function OnboardingForm({ defaultDisplayName }: { defaultDisplayName: string }) {
-  const [state, action, pending] = useActionState<OnboardingState, FormData>(createHousehold, {});
+  const [state, action, pending] = useActionState<ActionState, FormData>(createHousehold, {});
 
   return (
     <form action={action} className="mt-8 flex flex-col gap-5">
@@ -30,7 +31,7 @@ export function OnboardingForm({ defaultDisplayName }: { defaultDisplayName: str
       <button
         type="submit"
         disabled={pending}
-        className="h-12 rounded-xl bg-accent text-base font-semibold text-accent-foreground disabled:opacity-60"
+        className={primaryButtonClass}
       >
         {pending ? "만드는 중…" : "가계부 만들기"}
       </button>

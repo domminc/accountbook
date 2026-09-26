@@ -9,11 +9,9 @@ TMP="$(mktemp -d)"
 PORT="${PGTEST_PORT:-54329}"
 
 cleanup() {
-  "$PG_BIN/pg_ctl" -D "$TMP/data" -m immediate stop >/dev/null 2>&1 || true
+  run "'$PG_BIN/pg_ctl' -D '$TMP/data' -m immediate stop >/dev/null 2>&1" || true
   rm -rf "$TMP"
 }
-trap cleanup EXIT
-
 # initdb는 root로 실행할 수 없어서, root면 postgres 사용자로 실행한다
 run() {
   if [ "$(id -u)" = "0" ]; then
@@ -24,12 +22,13 @@ run() {
   fi
 }
 
+trap cleanup EXIT
+
 run "'$PG_BIN/initdb' -D '$TMP/data' -U postgres -A trust -E UTF8 --locale=C.UTF-8 >/dev/null"
 run "'$PG_BIN/pg_ctl' -D '$TMP/data' -o '-p $PORT -k $TMP -c listen_addresses=' -l '$TMP/log' -w start >/dev/null"
 
 PSQL=("$PG_BIN/psql" -h "$TMP" -p "$PORT" -U postgres -d postgres -v ON_ERROR_STOP=1 -q -X)
 
-"${PSQL[@]}" -f "$ROOT/supabase/tests/auth_stub.sql"
 for f in "$ROOT"/supabase/migrations/*.sql; do
   echo "migrate: $(basename "$f")"
   "${PSQL[@]}" -f "$f"

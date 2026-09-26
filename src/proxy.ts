@@ -1,8 +1,22 @@
-import type { NextRequest } from "next/server";
-import { updateSession } from "@/lib/supabase/proxy";
+import { NextResponse, type NextRequest } from "next/server";
+import { SESSION_COOKIE, verifySessionToken } from "@/lib/session";
 
-export async function proxy(request: NextRequest) {
-  return updateSession(request);
+// 로그인 없이 볼 수 있는 경로. /login/oauth 와 /auth/* 는 구글·카카오 로그인(보관 중)용.
+const PUBLIC_PATHS = ["/login", "/signup"];
+const PUBLIC_PREFIXES = ["/login/", "/auth/"];
+
+export function proxy(request: NextRequest) {
+  const { pathname, search } = request.nextUrl;
+  const isPublic = PUBLIC_PATHS.includes(pathname) || PUBLIC_PREFIXES.some((p) => pathname.startsWith(p));
+  if (isPublic) return NextResponse.next();
+
+  if (verifySessionToken(request.cookies.get(SESSION_COOKIE)?.value)) return NextResponse.next();
+
+  const loginUrl = request.nextUrl.clone();
+  loginUrl.pathname = "/login";
+  loginUrl.search = "";
+  if (pathname !== "/") loginUrl.searchParams.set("next", pathname + search);
+  return NextResponse.redirect(loginUrl);
 }
 
 export const config = {
