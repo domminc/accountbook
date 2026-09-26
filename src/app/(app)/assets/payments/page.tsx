@@ -11,6 +11,7 @@ import { MonthNav } from "@/components/month-nav";
 import { SubmitButton } from "@/components/submit-button";
 import { cardClass, primaryButtonClass } from "@/components/ui";
 import { RecordList } from "../record-list";
+import { paymentMethodOptions } from "../record-fields";
 import { enterPayments } from "./actions";
 
 const STATUS: Record<DuePayment["status"], { label: string; className: string }> = {
@@ -114,7 +115,7 @@ export default async function PaymentsPage({ searchParams }: PageProps<"/assets/
           kind="recurring_payments"
           rows={data.rules}
           categories={categories}
-          paymentMethods={data.methods.filter((p) => !p.isHidden).map((p) => ({ id: p.id, name: p.name }))}
+          paymentMethods={paymentMethodOptions(data.methods)}
           title={(r) => (
             <>
               {String(r.content)}

@@ -195,6 +195,27 @@ select pg_temp.expect_error(
   'B가 A 가구에 상환 기록 차단 (RLS)');
 reset role;
 
+-- 카드 ↔ 지출방법: 같은 가구의 지출방법만, 한 지출방법은 카드 하나에만
+select id as a_check from public.payment_methods where household_id = :'a_household' and name = '체크카드' \gset
+select id as b_check from public.payment_methods where household_id = :'b_household' and name = '체크카드' \gset
+set request.jwt.claim.sub to '00000000-0000-0000-0000-00000000000a';
+set role authenticated;
+insert into public.cards (household_id, name, monthly_budget, payment_method_id) values (:'a_household', '생활비카드', 800000, :'a_check');
+select pg_temp.expect_error(
+  format($$insert into public.cards (household_id, name, payment_method_id) values (%L, '다른카드', %L)$$, :'a_household', :'a_check'),
+  '한 지출방법은 카드 하나에만 연결');
+select pg_temp.expect_error(
+  format($$insert into public.cards (household_id, name, payment_method_id) values (%L, '남의카드', %L)$$, :'a_household', :'b_check'),
+  'B 가구 지출방법 연결 차단 (복합 FK)');
+insert into public.payment_methods (household_id, name, sort_order) values (:'a_household', '현대카드', 9);
+update public.cards set payment_method_id = (select id from public.payment_methods where name = '현대카드')
+where name = '생활비카드';
+delete from public.payment_methods where name = '현대카드';
+select pg_temp.assert(
+  (select payment_method_id is null and monthly_budget = 800000 from public.cards where name = '생활비카드'),
+  '지출방법 삭제 시 카드는 남고 연결만 끊김');
+reset role;
+
 -- 결제일에 연결된 소분류를 지우면 결제일은 남고 구분만 비워진다
 delete from public.categories where name = '통신비' and household_id = :'a_household';
 select pg_temp.assert(

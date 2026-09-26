@@ -35,12 +35,29 @@ export type NamedAmount = { id: string; name: string; amount: number };
 
 /** 결제 수단별: 지출(고정+비고정)만, 지출방법 순서대로. 금액이 있는 것만. */
 export function byPaymentMethod(rows: TransactionRow[], methods: SimpleItem[]): NamedAmount[] {
+  const sums = spendByPaymentMethod(rows);
+  return methods.filter((m) => sums.has(m.id)).map((m) => ({ id: m.id, name: m.name, amount: sums.get(m.id)! }));
+}
+
+/** 지출방법 id → 지출(고정+비고정) 합. 결제 수단별 지출·카드 사용액이 같은 기준을 쓴다. */
+export function spendByPaymentMethod(rows: TransactionRow[]): Map<string, number> {
   const sums = new Map<string, number>();
   for (const r of rows) {
     if (r.kind !== "expense" || !r.paymentMethodId) continue;
     sums.set(r.paymentMethodId, (sums.get(r.paymentMethodId) ?? 0) + r.amount);
   }
-  return methods.filter((m) => sums.has(m.id)).map((m) => ({ id: m.id, name: m.name, amount: sums.get(m.id)! }));
+  return sums;
+}
+
+export type CardInfo = { id: string; name: string; budget: number | null; paymentMethodId: string | null };
+export type CardUsage = { id: string; name: string; budget: number | null; spent: number };
+
+/** 카드별 사용액: 카드에 연결한 지출방법으로 쓴 지출 합. 연결하지 않은 카드는 빠진다. */
+export function cardUsage(cards: CardInfo[], rows: TransactionRow[]): CardUsage[] {
+  const sums = spendByPaymentMethod(rows);
+  return cards
+    .filter((c) => c.paymentMethodId)
+    .map((c) => ({ id: c.id, name: c.name, budget: c.budget, spent: sums.get(c.paymentMethodId!) ?? 0 }));
 }
 
 /** 태그별: 분류된 모든 거래(수입·저축 포함), 태그 순서대로. */

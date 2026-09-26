@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { addMonths } from "../src/lib/month";
-import { kstMonth, kstToday, signupAndCreateHousehold, uid } from "./helpers";
+import { addTransaction, kstMonth, kstToday, signupAndCreateHousehold, uid } from "./helpers";
 
 test.beforeEach(({ page }) => {
   page.on("dialog", (d) => d.accept());
@@ -54,8 +54,33 @@ test("자산·대출·카드·통장·결제일", async ({ page }) => {
   await page.getByLabel("카드사", { exact: true }).fill("현대카드");
   await page.getByLabel("결제일", { exact: true }).fill("13일");
   await page.getByLabel("매월 카드값 예산", { exact: true }).fill("800000");
+  await page.getByLabel("연결할 지출방법", { exact: true }).selectOption({ label: "체크카드" });
   await page.getByRole("button", { name: "추가", exact: true }).click();
   await expect(page.locator("summary").filter({ hasText: "생활비카드" })).toContainText("결제일 13일 · 예산 800,000");
+  await expect(page.locator("summary").filter({ hasText: "생활비카드" })).toContainText("지출방법 체크카드");
+
+  // 연결한 지출방법으로 쓴 지출만 카드 사용액에 들어간다
+  await addTransaction(page, { group: "식비", category: "마트", amount: 700_000, payment: "체크카드" });
+  await addTransaction(page, { group: "식비", category: "외식", amount: 50_000, payment: "현금" });
+  await page.goto("/assets/cards");
+  const usage = page.locator("section").filter({ has: page.getByRole("heading", { name: "이번 달 카드 사용" }) });
+  await expect(usage).toContainText("700,000 / 800,000");
+  await expect(usage).toContainText("80% 넘음");
+  await expect(usage).toContainText("남은 예산 100,000");
+  await expect(usage.getByRole("meter", { name: "생활비카드 카드 예산 사용" })).toHaveAttribute("aria-valuenow", "700000");
+  await page.goto("/");
+  await expect(page.locator("section").filter({ has: page.getByRole("heading", { name: "카드별 사용" }) })).toContainText(
+    "700,000 / 800,000",
+  );
+
+  // 한 지출방법은 카드 하나에만 연결한다
+  await page.goto("/assets/cards");
+  const addCard = page.locator("details").filter({ has: page.locator("summary", { hasText: "+ 카드 추가" }) });
+  await addCard.locator("summary").click();
+  await addCard.getByLabel("카드명 *", { exact: true }).fill("비상카드");
+  await addCard.getByLabel("연결할 지출방법", { exact: true }).selectOption({ label: "체크카드" });
+  await addCard.getByRole("button", { name: "추가", exact: true }).click();
+  await expect(addCard.locator("p[role=alert]")).toHaveText("이미 다른 카드에 연결한 지출방법이에요.");
 
   // ── 통장: 계좌번호는 끝 4자리만 ──
   await page.goto("/assets/accounts");

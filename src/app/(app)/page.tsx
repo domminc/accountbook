@@ -8,10 +8,12 @@ import { loadCategoryGroups, loadSimpleItems, type CategoryGroup } from "@/lib/d
 import { listTransactions } from "@/lib/data/transactions";
 import { loadBudgets, loadEvents, loadGoals, type GoalKind, type Goals } from "@/lib/data/plan";
 import { loadDuePayments, type DuePayment } from "@/lib/data/payments";
+import { loadCardInfos } from "@/lib/data/finance";
 import {
   budgetRows,
   byPaymentMethod,
   byTag,
+  cardUsage,
   dailyCells,
   monthTotals,
   monthWeeks,
@@ -24,6 +26,7 @@ import {
   type ShareItem,
 } from "@/lib/summary";
 import { Meter, meterState } from "@/components/meter";
+import { CardUsageList } from "@/components/card-usage";
 import { MonthNav } from "@/components/month-nav";
 import { cardClass, primaryButtonClass, smallButtonClass } from "@/components/ui";
 
@@ -35,7 +38,7 @@ export default async function MonthSummaryPage({ searchParams }: PageProps<"/">)
   const today = todayKST();
 
   const data = await withUser(m.userId, async (tx) => {
-    const [rows, prevRows, groups, methods, tags, budgets, goals, events, due] = await Promise.all([
+    const [rows, prevRows, groups, methods, tags, budgets, goals, events, due, cards] = await Promise.all([
       listTransactions(tx, m.householdId, range),
       listTransactions(tx, m.householdId, monthRange(addMonths(month, -1))),
       loadCategoryGroups(tx, m.householdId),
@@ -46,14 +49,16 @@ export default async function MonthSummaryPage({ searchParams }: PageProps<"/">)
       loadEvents(tx, m.householdId, range),
       // 결제 예정은 이번 달을 볼 때만
       month === currentMonthKST() ? loadDuePayments(tx, m.householdId, month, today) : Promise.resolve([]),
+      loadCardInfos(tx, m.householdId),
     ]);
-    return { rows, prevRows, groups, methods, tags, budgets, goals, events, due };
+    return { rows, prevRows, groups, methods, tags, budgets, goals, events, due, cards };
   });
 
   const totals = monthTotals(data.rows);
   const prev = monthTotals(data.prevRows);
   const cells = dailyCells(data.rows, [], month, today);
   const uncategorized = data.rows.filter((r) => !r.kind).length;
+  const cards = cardUsage(data.cards, data.rows);
 
   return (
     <div className="flex flex-col gap-5">
@@ -98,6 +103,20 @@ export default async function MonthSummaryPage({ searchParams }: PageProps<"/">)
         <AmountList title="결제 수단별 지출" items={byPaymentMethod(data.rows, data.methods)} empty="지출방법을 고른 지출이 없어요." />
         <AmountList title="태그별 금액" items={byTag(data.rows, data.tags)} empty="태그를 붙인 거래가 없어요." />
       </div>
+
+      {cards.length > 0 ? (
+        <section className={`p-5 ${cardClass}`}>
+          <div className="flex items-baseline justify-between">
+            <h2 className="font-semibold">카드별 사용</h2>
+            <Link href={`/assets/cards?month=${month}`} className="text-sm text-muted">
+              카드 관리
+            </Link>
+          </div>
+          <div className="mt-3">
+            <CardUsageList items={cards} />
+          </div>
+        </section>
+      ) : null}
 
       <section className={`p-5 ${cardClass}`}>
         <div className="flex items-baseline justify-between">

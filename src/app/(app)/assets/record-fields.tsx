@@ -85,3 +85,11 @@ export function RecordFields({
     </div>
   );
 }
+
+/** 지출방법 선택지: 숨긴 것도 뒤에 붙여 둔다 (이미 연결된 항목을 수정할 때 연결이 풀리지 않게) */
+export function paymentMethodOptions(methods: { id: string; name: string; isHidden: boolean }[]): Option[] {
+  return [
+    ...methods.filter((p) => !p.isHidden).map((p) => ({ id: p.id, name: p.name })),
+    ...methods.filter((p) => p.isHidden).map((p) => ({ id: p.id, name: `${p.name} (숨김)` })),
+  ];
+}

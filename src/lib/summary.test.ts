@@ -6,6 +6,7 @@ import {
   byPaymentMethod,
   byTag,
   calendarTotals,
+  cardUsage,
   dailyCells,
   monthTotals,
   monthWeeks,
@@ -88,6 +89,18 @@ describe("byPaymentMethod / byTag", () => {
     expect(byPaymentMethod(rows, [item("cash"), item("card"), item("unused")])).toEqual([
       { id: "cash", name: "cash", amount: 30 },
       { id: "card", name: "card", amount: 150 },
+    ]);
+  });
+
+  it("카드 사용액은 연결한 지출방법의 지출 합 (연결 없는 카드는 빠짐)", () => {
+    const cards = [
+      { id: "c1", name: "생활비카드", budget: 200, paymentMethodId: "card" },
+      { id: "c2", name: "안쓰는카드", budget: null, paymentMethodId: "other" },
+      { id: "c3", name: "연결안함", budget: 100, paymentMethodId: null },
+    ];
+    expect(cardUsage(cards, rows)).toEqual([
+      { id: "c1", name: "생활비카드", budget: 200, spent: 150 },
+      { id: "c2", name: "안쓰는카드", budget: null, spent: 0 },
     ]);
   });
 

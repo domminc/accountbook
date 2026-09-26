@@ -1,6 +1,7 @@
 import type { Tx } from "@/lib/db";
 import type { RecordKind } from "@/lib/records";
 import type { AssetItem, AssetSection, Snapshot } from "@/lib/finance";
+import type { CardInfo } from "@/lib/summary";
 
 export type RecordRow = { id: string } & Record<string, unknown>;
 
@@ -32,4 +33,12 @@ export async function loadSnapshots(tx: Tx, householdId: string, range: { start:
     where household_id = ${householdId} and period between ${range.start} and ${range.end}
   `;
   return rows.map((r) => ({ itemId: r.asset_item_id, month: r.period.slice(0, 7), amount: r.amount }));
+}
+
+export async function loadCardInfos(tx: Tx, householdId: string): Promise<CardInfo[]> {
+  const rows = await tx<{ id: string; name: string; monthly_budget: number | null; payment_method_id: string | null }[]>`
+    select id, name, monthly_budget, payment_method_id from public.cards
+    where household_id = ${householdId} order by sort_order, created_at
+  `;
+  return rows.map((r) => ({ id: r.id, name: r.name, budget: r.monthly_budget, paymentMethodId: r.payment_method_id }));
 }

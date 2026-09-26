@@ -32,6 +32,7 @@ export const RECORDS: Record<RecordKind, { title: string; unit: string; fields: 
       { key: "card_type", label: "카드종류", type: "text", placeholder: "신용카드 / 체크카드" },
       { key: "purpose", label: "용도", type: "text", placeholder: "예: 생활비" },
       { key: "monthly_budget", label: "매월 카드값 예산", type: "amount" },
+      { key: "payment_method_id", label: "연결할 지출방법", type: "payment_method" },
       { key: "billing_day", label: "결제일", type: "text", placeholder: "예: 13일" },
       { key: "usage_period", label: "카드사용일", type: "text", placeholder: "예: 전월 1일~말일" },
       { key: "billing_account", label: "결제계좌", type: "text" },

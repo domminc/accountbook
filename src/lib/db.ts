@@ -50,6 +50,7 @@ export function dbErrorMessage(e: unknown): string {
   if (e instanceof postgres.PostgresError) {
     switch (e.code) {
       case "23505":
+        if (e.constraint_name === "cards_payment_method_unique") return "이미 다른 카드에 연결한 지출방법이에요.";
         return "같은 이름이 이미 있어요.";
       case "23503":
         return "사용 중인 항목이라 지울 수 없어요. 대신 숨김을 써 주세요.";
