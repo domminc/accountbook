@@ -20,6 +20,9 @@
 
 ## 2. Vercel (웹 서버)
 
+> **가장 쉬운 방법**: Vercel 프로젝트의 **Storage → Supabase 연동**으로 DB를 연결하면 `POSTGRES_URL`·`SUPABASE_JWT_SECRET` 등이 자동으로 들어가고, 앱은 이것을 먼저 쓴다 (`src/lib/db-url.mjs`). 이때는 아래 `DATABASE_URL`·`SESSION_SECRET`을 넣지 않아도 되고, 표도 배포할 때 자동으로 만들어진다.
+> 배포 후 `https://<주소>/api/health`에서 `"상태": "정상"`인지 확인한다 (비밀 값은 보여주지 않음).
+
 1. [vercel.com](https://vercel.com)에 GitHub 계정으로 로그인하고 **Add New → Project**에서 이 저장소를 고른다.
 2. **Environment Variables**에 두 개를 넣는다.
 
