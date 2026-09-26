@@ -169,8 +169,8 @@ function SummaryCard({ totals, prev }: { totals: MonthTotals; prev: MonthTotals 
   return (
     <section className={`p-5 ${cardClass}`} aria-label="이달 요약">
       <p className="text-sm text-muted">남은 금액 (수입 − 지출)</p>
-      <p className={`text-3xl font-bold break-keep sm:text-4xl ${totals.remaining < 0 ? "text-danger" : ""}`}>{formatWon(totals.remaining)}원</p>
-      <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-border pt-4">
+      <p className={`text-3xl font-bold break-all sm:text-4xl ${totals.remaining < 0 ? "text-danger" : ""}`}>{formatWon(totals.remaining)}원</p>
+      <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-border pt-4 [&_dd]:break-all [&>div]:min-w-0">
         <div>
           <dt className="text-sm text-muted">총 수입</dt>
           <dd className="text-lg font-semibold">{formatWon(totals.income)}</dd>
@@ -519,9 +519,9 @@ function OverspendCard({ alerts, month }: { alerts: OverspendAlert[]; month: str
             <div className="flex items-baseline justify-between gap-2">
               <span className="min-w-0">
                 {a.name}
-                {a.kind === "over_limit" ? <span className="ml-1.5 text-xs font-semibold text-danger">▲ 한도 초과</span> : null}
-                {a.kind === "near_limit" ? <span className="ml-1.5 text-xs font-semibold text-warning">● 한도 80% 넘음</span> : null}
-                {a.kind === "above_average" ? <span className="ml-1.5 text-xs font-semibold text-warning">▲ 평소보다 많음</span> : null}
+                {a.kind === "over_limit" ? <span className="ml-1.5 text-xs font-semibold whitespace-nowrap text-danger">▲ 한도 초과</span> : null}
+                {a.kind === "near_limit" ? <span className="ml-1.5 text-xs font-semibold whitespace-nowrap text-warning">● 한도 80% 넘음</span> : null}
+                {a.kind === "above_average" ? <span className="ml-1.5 text-xs font-semibold whitespace-nowrap text-warning">▲ 평소보다 많음</span> : null}
               </span>
               <span className="shrink-0 font-semibold tabular-nums">{formatWon(a.spent)}</span>
             </div>

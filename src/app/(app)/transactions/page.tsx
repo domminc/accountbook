@@ -180,9 +180,9 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
 
 function Total({ label, value }: { label: string; value: number }) {
   return (
-    <div className="px-3 py-3 text-center">
+    <div className="min-w-0 px-2 py-3 text-center">
       <dt className="text-xs text-muted">{label}</dt>
-      <dd className="mt-0.5 font-semibold tabular-nums">{formatWon(value)}</dd>
+      <dd className="mt-0.5 font-semibold break-all tabular-nums">{formatWon(value)}</dd>
     </div>
   );
 }
