@@ -7,7 +7,7 @@ import { formatWon } from "@/lib/money";
 import { enqueue, isNetworkError } from "@/lib/offline-queue";
 import { RECEIPTS_PER_TRANSACTION } from "@/lib/receipt";
 import { ReceiptPicker } from "@/components/receipt-picker";
-import { inputClass, primaryButtonClass, secondaryButtonClass } from "@/components/ui";
+import { inputClass, primaryButtonClass, secondaryButtonClass, segmentGroupClass, segmentItemClass } from "@/components/ui";
 import type { KeptValues, TransactionActionState } from "./actions";
 
 export type FormGroup = { id: string; name: string; kind: CategoryKind; categories: { id: string; name: string }[] };
@@ -171,7 +171,7 @@ function Fields({ groups, paymentMethods, tags, initial, offline }: Props) {
 
   return (
     <>
-      <div role="radiogroup" aria-label="유형" className="grid grid-cols-3 rounded-xl border border-border bg-surface p-1">
+      <div role="radiogroup" aria-label="유형" className={`grid-cols-3 ${segmentGroupClass}`}>
         {KINDS.map((k) => (
           <button
             key={k}
@@ -179,7 +179,7 @@ function Fields({ groups, paymentMethods, tags, initial, offline }: Props) {
             role="radio"
             aria-checked={kind === k}
             onClick={() => changeKind(k)}
-            className={`h-10 rounded-lg text-sm font-semibold ${kind === k ? "bg-accent text-accent-foreground" : "text-muted"}`}
+            className={`w-full ${segmentItemClass(kind === k)}`}
           >
             {TX_KIND_LABEL[k]}
           </button>
@@ -310,8 +310,8 @@ function ChipGroup({
               role={multiple ? "checkbox" : "radio"}
               aria-checked={on}
               onClick={() => onToggle(o.id)}
-              className={`h-10 rounded-full border px-4 text-sm ${
-                on ? "border-accent bg-accent text-accent-foreground" : "border-border bg-surface"
+              className={`h-10 rounded-full border px-4 text-sm font-medium transition active:scale-95 ${
+                on ? "border-accent bg-accent text-accent-foreground shadow-sm" : "border-border bg-surface hover:bg-fill"
               }`}
             >
               {o.name}

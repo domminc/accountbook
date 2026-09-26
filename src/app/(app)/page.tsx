@@ -172,34 +172,40 @@ function Delta({ value, better }: { value: number; better: "up" | "down" }) {
 
 function SummaryCard({ totals, prev }: { totals: MonthTotals; prev: MonthTotals }) {
   return (
-    <section className={`p-5 ${cardClass}`} aria-label="이달 요약">
-      <p className="text-sm text-muted">남은 금액 (수입 − 지출)</p>
-      <p className={`text-3xl font-bold break-all sm:text-4xl ${totals.remaining < 0 ? "text-danger" : ""}`}>{formatWon(totals.remaining)}원</p>
-      <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-border pt-4 sm:grid-cols-4 [&_dd]:break-all [&>div]:min-w-0">
+    <section className={`overflow-hidden ${cardClass}`} aria-label="이달 요약">
+      {/* 테마와 상관없이 같은 파랑 위 흰 글씨 (명암비 5:1 이상) */}
+      <div className="bg-linear-to-br from-[#2563eb] to-[#1e3fae] px-5 pt-5 pb-6 text-white">
+        <p className="text-sm text-white/85">남은 금액 (수입 − 지출)</p>
+        <p className="mt-1 text-4xl font-bold tracking-tight break-all tabular-nums">{formatWon(totals.remaining)}원</p>
+        {totals.remaining < 0 ? (
+          <p className="mt-2 inline-block rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium">지출이 수입보다 많아요</p>
+        ) : null}
+      </div>
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-4 p-5 sm:grid-cols-4 [&_dd]:break-all [&>div]:min-w-0">
         <div>
-          <dt className="text-sm text-muted">총 수입</dt>
-          <dd className="text-lg font-semibold">{formatWon(totals.income)}</dd>
+          <dt className="text-xs font-medium text-muted">총 수입</dt>
+          <dd className="mt-0.5 text-lg font-bold tabular-nums">{formatWon(totals.income)}</dd>
           <dd>
             <Delta value={totals.income - prev.income} better="up" />
           </dd>
         </div>
         <div>
-          <dt className="text-sm text-muted">총 지출</dt>
-          <dd className="text-lg font-semibold">{formatWon(totals.expense)}</dd>
+          <dt className="text-xs font-medium text-muted">총 지출</dt>
+          <dd className="mt-0.5 text-lg font-bold tabular-nums">{formatWon(totals.expense)}</dd>
           <dd>
             <Delta value={totals.expense - prev.expense} better="down" />
           </dd>
         </div>
         <div>
-          <dt className="text-sm text-muted">총 저축</dt>
-          <dd className="text-lg font-semibold">{formatWon(totals.saving)}</dd>
+          <dt className="text-xs font-medium text-muted">총 저축</dt>
+          <dd className="mt-0.5 text-lg font-bold tabular-nums">{formatWon(totals.saving)}</dd>
           <dd>
             <Delta value={totals.saving - prev.saving} better="up" />
           </dd>
         </div>
         <div>
-          <dt className="text-sm text-muted">저축률</dt>
-          <dd className="text-lg font-semibold">{totals.savingRate === null ? "-" : formatPercent(totals.savingRate)}</dd>
+          <dt className="text-xs font-medium text-muted">저축률</dt>
+          <dd className="mt-0.5 text-lg font-bold tabular-nums">{totals.savingRate === null ? "-" : formatPercent(totals.savingRate)}</dd>
           <dd className="text-xs text-muted">
             고정 {formatWon(totals.fixed)} · 비고정 {formatWon(totals.variable)}
           </dd>

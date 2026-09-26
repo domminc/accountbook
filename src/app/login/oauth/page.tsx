@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getUserId } from "@/lib/supabase/server";
 import { safeNextPath } from "@/lib/safe-next-path";
 import { LoginButtons } from "./login-buttons";
+import { BrandMark } from "@/components/brand-mark";
 
 export default async function LoginPage({ searchParams }: PageProps<"/login/oauth">) {
   const params = await searchParams;
@@ -11,8 +12,9 @@ export default async function LoginPage({ searchParams }: PageProps<"/login/oaut
 
   return (
     <main className="flex flex-1 items-center justify-center px-4 py-12">
-      <div className="w-full max-w-sm">
-        <h1 className="text-2xl font-bold">가계부</h1>
+      <div className="w-full max-w-sm rounded-3xl bg-surface p-7 shadow-card sm:p-8">
+        <BrandMark />
+        <h1 className="text-2xl font-bold tracking-tight">가계부</h1>
         <p className="mt-2 text-muted">부부가 함께 쓰는 가계부예요. 계정으로 로그인해 주세요.</p>
 
         {params.error ? (

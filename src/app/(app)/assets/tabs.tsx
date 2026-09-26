@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { segmentGroupClass, segmentItemClass } from "@/components/ui";
 
 const TABS = [
   { href: "/assets", label: "자산" },
@@ -14,7 +15,7 @@ const TABS = [
 export function AssetsTabs() {
   const pathname = usePathname();
   return (
-    <nav aria-label="자산·금융" className="grid grid-cols-5 rounded-xl border border-border bg-surface p-1">
+    <nav aria-label="자산·금융" className={`grid-cols-5 ${segmentGroupClass}`}>
       {TABS.map((t) => {
         const active = t.href === "/assets" ? pathname === "/assets" : pathname.startsWith(t.href);
         return (
@@ -22,7 +23,7 @@ export function AssetsTabs() {
             key={t.href}
             href={t.href}
             aria-current={active ? "page" : undefined}
-            className={`flex h-9 items-center justify-center rounded-lg text-sm ${active ? "bg-accent font-semibold text-accent-foreground" : "text-muted"}`}
+            className={segmentItemClass(active)}
           >
             {t.label}
           </Link>

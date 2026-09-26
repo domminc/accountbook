@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { segmentGroupClass, segmentItemClass } from "@/components/ui";
 
 /** 거래 내역 목록 ↔ 달력 전환 */
 export function ViewTabs({ month, active }: { month: string; active: "list" | "calendar" }) {
@@ -6,13 +7,13 @@ export function ViewTabs({ month, active }: { month: string; active: "list" | "c
     <Link
       href={href}
       aria-current={active === key ? "page" : undefined}
-      className={`flex h-9 items-center justify-center rounded-lg text-sm ${active === key ? "bg-accent font-semibold text-accent-foreground" : "text-muted"}`}
+      className={segmentItemClass(active === key)}
     >
       {label}
     </Link>
   );
   return (
-    <nav aria-label="보기 방식" className="grid grid-cols-2 rounded-xl border border-border bg-surface p-1">
+    <nav aria-label="보기 방식" className={`grid-cols-2 ${segmentGroupClass}`}>
       {tab("list", `/transactions?month=${month}`, "목록")}
       {tab("calendar", `/transactions/calendar?month=${month}`, "달력")}
     </nav>

@@ -7,7 +7,7 @@ export function Meter({ value, max, kind, label }: { value: number; max: number;
   const ratio = max > 0 ? value / max : 0;
   const state = kind === "limit" ? (ratio > 1 ? "over" : ratio >= 0.8 ? "near" : "ok") : "ok";
   const fill = state === "over" ? "bg-danger" : state === "near" ? "bg-warning" : "bg-accent";
-  const track = state === "over" ? "bg-danger/15" : state === "near" ? "bg-warning/15" : "bg-accent/15";
+  const track = "bg-fill";
   return (
     <div
       role="meter"
@@ -15,9 +15,9 @@ export function Meter({ value, max, kind, label }: { value: number; max: number;
       aria-valuemin={0}
       aria-valuemax={max}
       aria-valuenow={value}
-      className={`h-2 w-full overflow-hidden rounded-full ${track}`}
+      className={`h-2.5 w-full overflow-hidden rounded-full ${track}`}
     >
-      <div className={`h-full rounded-full ${fill}`} style={{ width: `${Math.min(ratio, 1) * 100}%` }} />
+      <div className={`h-full rounded-full transition-[width] duration-500 ${fill}`} style={{ width: `${Math.min(ratio, 1) * 100}%` }} />
     </div>
   );
 }
