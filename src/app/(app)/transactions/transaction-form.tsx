@@ -1,8 +1,10 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import { TX_KIND_LABEL, type CategoryKind, type TxKind } from "@/lib/data/settings";
+import { useActionState, useEffect, useState } from "react";
+import { TX_KIND_LABEL, txKindOf, type CategoryKind, type TxKind } from "@/lib/data/settings";
+import { formatDateLabel, isValidDate, todayKST } from "@/lib/month";
 import { formatWon } from "@/lib/money";
+import { enqueue, isNetworkError } from "@/lib/offline-queue";
 import { inputClass, primaryButtonClass, secondaryButtonClass } from "@/components/ui";
 import type { KeptValues, TransactionActionState } from "./actions";
 
@@ -27,10 +29,24 @@ type Props = {
   action: (prev: TransactionActionState, formData: FormData) => Promise<TransactionActionState>;
   /** 새 거래일 때만 "저장하고 계속 입력" */
   allowSaveMore: boolean;
+  /** 새 거래: 연결이 없으면 이 사람의 기기 대기열에 저장한다 */
+  offline?: { userId: string; renderedToday: string };
 };
 
 export function TransactionForm(props: Props) {
-  const [state, formAction, pending] = useActionState<TransactionActionState, FormData>(props.action, {});
+  const [state, formAction, pending] = useActionState<TransactionActionState, FormData>(async (prev, formData) => {
+    // crypto.randomUUID 는 https(또는 localhost)에서만 있다
+    if (!props.offline || typeof crypto.randomUUID !== "function") return props.action(prev, formData);
+    // 기기에서 id를 정해 두면, 응답을 못 받아 다시 올려도 한 번만 저장된다
+    formData.set("clientId", crypto.randomUUID());
+    if (navigator.onLine === false) return saveOffline(props, formData);
+    try {
+      return await props.action(prev, formData);
+    } catch (e) {
+      if (isNetworkError(e)) return saveOffline(props, formData);
+      throw e;
+    }
+  }, {});
 
   // 저장하고 계속 입력하면 날짜·유형·분류·지출방법은 남기고 금액·내용·태그는 비운 새 폼을 띄운다
   const initial = state.kept ? fromKept(state.kept) : props.initial;
@@ -67,6 +83,39 @@ function fromKept(k: KeptValues): FormInitial {
   return { ...k, amount: null, tagIds: [], memo: "" };
 }
 
+/** 연결이 없을 때: 이 기기에 저장하고, 날짜·분류·지출방법은 남긴 새 폼을 띄운다 */
+function saveOffline(props: Props, formData: FormData): TransactionActionState {
+  const categoryId = String(formData.get("categoryId") ?? "");
+  const group = props.groups.find((g) => g.categories.some((c) => c.id === categoryId));
+  const category = group?.categories.find((c) => c.id === categoryId);
+  const amount = Number(String(formData.get("amount") ?? "").replace(/[^\d]/g, ""));
+  const occurredOn = String(formData.get("occurredOn") ?? "");
+  if (!isValidDate(occurredOn)) return { error: "날짜를 확인해 주세요." };
+  if (!group || !category) return { error: "소분류를 골라 주세요." };
+  if (!amount) return { error: "금액을 1원 ~ 1조 원 사이로 입력해 주세요." };
+
+  const entries = [...formData.entries()]
+    .filter((e): e is [string, string] => typeof e[1] === "string" && !e[0].startsWith("$ACTION"))
+    .filter(([k]) => k !== "intent");
+  const memo = String(formData.get("memo") ?? "").trim();
+  const ok = enqueue({
+    clientId: String(formData.get("clientId")),
+    userId: props.offline!.userId,
+    entries,
+    label: `${formatDateLabel(occurredOn)} ${group.name} · ${category.name} ${formatWon(amount)}원${memo ? ` · ${memo}` : ""}`,
+    queuedAt: Date.now(),
+  });
+  if (!ok) return { error: "인터넷 연결이 없고, 이 기기에도 저장하지 못했어요." };
+
+  const kind = txKindOf(group.kind);
+  const paymentMethodId = String(formData.get("paymentMethodId") ?? "") || null;
+  return {
+    savedAt: Date.now(),
+    message: "인터넷 연결이 없어 이 기기에 저장했어요. 연결되면 자동으로 올려요.",
+    kept: { kind, groupId: group.id, categoryId, occurredOn, paymentMethodId },
+  };
+}
+
 const KINDS: TxKind[] = ["expense", "income", "saving"];
 
 function groupsOfKind(groups: FormGroup[], kind: TxKind) {
@@ -75,7 +124,7 @@ function groupsOfKind(groups: FormGroup[], kind: TxKind) {
   );
 }
 
-function Fields({ groups, paymentMethods, tags, initial }: Props) {
+function Fields({ groups, paymentMethods, tags, initial, offline }: Props) {
   const [kind, setKind] = useState<TxKind>(initial.kind);
   const [groupId, setGroupId] = useState<string | null>(initial.groupId ?? autoGroup(groups, initial.kind));
   const [categoryId, setCategoryId] = useState<string | null>(initial.categoryId);
@@ -85,6 +134,15 @@ function Fields({ groups, paymentMethods, tags, initial }: Props) {
   // React는 액션 후 비제어 입력을 초기화하므로, 오류가 나도 입력이 남도록 제어 입력으로 둔다
   const [occurredOn, setOccurredOn] = useState(initial.occurredOn);
   const [memo, setMemo] = useState(initial.memo);
+
+  // 오프라인용으로 저장해 둔 화면은 며칠 전에 받은 것일 수 있다: "오늘"로 채웠던 날짜를 이 기기의 오늘로
+  const renderedToday = offline?.renderedToday;
+  useEffect(() => {
+    const today = todayKST();
+    // 서버가 그린 값과 맞춰 하이드레이션한 뒤에 기기 시계로 고친다
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (renderedToday && renderedToday !== today && initial.occurredOn === renderedToday) setOccurredOn(today);
+  }, [renderedToday, initial.occurredOn]);
 
   const visibleGroups = groupsOfKind(groups, kind);
   const group = groups.find((g) => g.id === groupId) ?? null;

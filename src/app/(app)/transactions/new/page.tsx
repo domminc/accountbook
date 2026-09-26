@@ -52,7 +52,13 @@ export default async function NewTransactionPage({ searchParams }: PageProps<"/t
         ← 내역
       </Link>
       <h1 className="mt-2 mb-5 text-xl font-bold">{fromId ? "복제해서 입력" : "거래 입력"}</h1>
-      <TransactionForm {...options} initial={initial} action={saveTransaction.bind(null, null)} allowSaveMore />
+      <TransactionForm
+        {...options}
+        initial={initial}
+        action={saveTransaction.bind(null, null)}
+        allowSaveMore
+        offline={{ userId: m.userId, renderedToday: today }}
+      />
     </div>
   );
 }

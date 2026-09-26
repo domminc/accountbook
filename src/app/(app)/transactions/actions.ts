@@ -7,7 +7,7 @@ import { dbErrorMessage, withUser } from "@/lib/db";
 import { requireHousehold } from "@/lib/household";
 import { isValidDate, isValidMonth, monthRange, addMonths, shiftDateToMonth } from "@/lib/month";
 import { parseAmount } from "@/lib/money";
-import { firstError } from "@/lib/validation";
+import { firstError, uuidSchema } from "@/lib/validation";
 import { txKindOf, type CategoryKind, type TxKind } from "@/lib/data/settings";
 import type { ActionState } from "@/lib/action-state";
 
@@ -42,7 +42,38 @@ export async function saveTransaction(
   _prev: TransactionActionState,
   formData: FormData,
 ): Promise<TransactionActionState> {
+  const r = await persistTransaction(id, formData);
+  if ("error" in r) return { error: r.error };
+
+  revalidatePath("/", "layout");
+  if (!id && formData.get("intent") === "more") {
+    return { savedAt: Date.now(), message: "저장했어요. 이어서 입력하세요.", kept: r.kept };
+  }
+  redirect(`/transactions?month=${r.kept.occurredOn.slice(0, 7)}`);
+}
+
+/**
+ * 오프라인일 때 기기에 모아 둔 새 거래를 올린다. 폼 값 그대로 받고, 이동하지 않는다.
+ * clientId 로 저장하므로 같은 거래를 두 번 올려도 한 번만 들어간다.
+ */
+export async function syncOfflineTransaction(entries: [string, string][]): Promise<{ ok: true } | { error: string }> {
+  if (!Array.isArray(entries) || entries.length > 50) return { error: "입력값을 확인해 주세요." };
+  const formData = new FormData();
+  for (const e of entries) {
+    if (!Array.isArray(e) || typeof e[0] !== "string" || typeof e[1] !== "string") return { error: "입력값을 확인해 주세요." };
+    formData.append(e[0], e[1]);
+  }
+  if (!formData.get("clientId")) return { error: "입력값을 확인해 주세요." };
+  const r = await persistTransaction(null, formData);
+  if ("error" in r) return r;
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+async function persistTransaction(id: string | null, formData: FormData): Promise<{ kept: KeptValues } | { error: string }> {
   const m = await requireHousehold();
+  const clientId = String(formData.get("clientId") ?? "");
+  if (clientId && !uuidSchema.safeParse(clientId).success) return { error: "입력값을 확인해 주세요." };
   const parsed = schema.safeParse({
     occurredOn: formData.get("occurredOn") ?? "",
     amount: formData.get("amount") ?? "",
@@ -77,6 +108,19 @@ export async function saveTransaction(
         `;
         if (updated.count === 0) throw new UserError("거래를 찾을 수 없어요.");
         await tx`delete from public.transaction_tags where transaction_id = ${txId}`;
+      } else if (clientId) {
+        // 기기에서 만든 id로 저장: 응답을 못 받아 다시 올려도 두 번 들어가지 않는다
+        const inserted = await tx`
+          insert into public.transactions (id, household_id, occurred_on, amount, category_id, payment_method_id, memo, created_by)
+          values (${clientId}, ${m.householdId}, ${v.occurredOn}, ${v.amount}, ${v.categoryId}, ${paymentMethodId}, ${v.memo}, ${m.userId})
+          on conflict (id) do nothing
+        `;
+        if (inserted.count === 0) {
+          const [dup] = await tx`select 1 from public.transactions where id = ${clientId} and household_id = ${m.householdId}`;
+          if (!dup) throw new UserError("저장하지 못했어요. 다시 입력해 주세요.");
+          return { kind, groupId: cat.group_id, categoryId: v.categoryId, occurredOn: v.occurredOn, paymentMethodId };
+        }
+        txId = clientId;
       } else {
         const [row] = await tx<{ id: string }[]>`
           insert into public.transactions (household_id, occurred_on, amount, category_id, payment_method_id, memo, created_by)
@@ -97,12 +141,7 @@ export async function saveTransaction(
   } catch (e) {
     return { error: e instanceof UserError ? e.message : dbErrorMessage(e) };
   }
-
-  revalidatePath("/", "layout");
-  if (!id && formData.get("intent") === "more") {
-    return { savedAt: Date.now(), message: "저장했어요. 이어서 입력하세요.", kept };
-  }
-  redirect(`/transactions?month=${v.occurredOn.slice(0, 7)}`);
+  return { kept };
 }
 
 export async function deleteTransaction(id: string, month: string): Promise<ActionState> {
