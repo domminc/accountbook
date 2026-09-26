@@ -25,7 +25,7 @@ export async function signupAndCreateHousehold(page: Page, loginId: string, name
 
   await page.locator("input[name=displayName]").fill(name);
   await page.getByRole("button", { name: "가계부 만들기" }).click();
-  await expect(page.getByRole("link", { name: "거래 입력", exact: true })).toBeVisible();
+  await expect(page.getByRole("main").getByRole("link", { name: "거래 입력", exact: true })).toBeVisible();
 }
 
 export async function chip(page: Page, name: string) {

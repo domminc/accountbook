@@ -31,7 +31,7 @@ test("초대 링크로 배우자가 가입·참여하고 같은 가계부를 함
   await expect(spouse.getByText("우리집 가계부에 초대받았어요")).toBeVisible();
   await spouse.locator("input[name=displayName]").fill("지영");
   await spouse.getByRole("button", { name: "가계부 참여하기" }).click();
-  await expect(spouse.getByRole("link", { name: "거래 입력", exact: true })).toBeVisible();
+  await expect(spouse.getByRole("main").getByRole("link", { name: "거래 입력", exact: true })).toBeVisible();
 
   // 배우자도 같은 거래를 본다
   await spouse.goto("/transactions");

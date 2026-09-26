@@ -5,14 +5,16 @@ import { useActionState } from "react";
 import type { ActionState } from "@/lib/action-state";
 import { inputClass, primaryButtonClass } from "@/components/ui";
 import { signup } from "./actions";
+import { BrandMark } from "@/components/brand-mark";
 
 export function SignupForm({ next }: { next: string }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(signup, {});
 
   return (
     <main className="flex flex-1 items-center justify-center px-4 py-12">
-      <div className="w-full max-w-sm">
-        <h1 className="text-2xl font-bold">아이디 만들기</h1>
+      <div className="w-full max-w-sm rounded-3xl bg-surface p-7 shadow-card sm:p-8">
+        <BrandMark />
+        <h1 className="text-2xl font-bold tracking-tight">아이디 만들기</h1>
         <form action={action} className="mt-8 flex flex-col gap-4">
           <input type="hidden" name="next" value={next} />
           <label className="block">

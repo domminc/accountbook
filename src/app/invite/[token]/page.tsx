@@ -6,6 +6,7 @@ import { ActionForm } from "@/components/action-form";
 import { SubmitButton } from "@/components/submit-button";
 import { inputClass, primaryButtonClass } from "@/components/ui";
 import { acceptInvite } from "./actions";
+import { BrandMark } from "@/components/brand-mark";
 
 export default async function InvitePage({ params }: PageProps<"/invite/[token]">) {
   const { token } = await params;
@@ -48,8 +49,9 @@ export default async function InvitePage({ params }: PageProps<"/invite/[token]"
 
   return (
     <main className="flex flex-1 items-center justify-center px-4 py-12">
-      <div className="w-full max-w-sm">
-        <h1 className="text-2xl font-bold">가계부 초대</h1>
+      <div className="w-full max-w-sm rounded-3xl bg-surface p-7 shadow-card sm:p-8">
+        <BrandMark />
+        <h1 className="text-2xl font-bold tracking-tight">가계부 초대</h1>
         {body}
         <Link href="/" className="mt-6 block text-center text-sm text-muted underline underline-offset-4">
           홈으로

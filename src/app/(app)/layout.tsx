@@ -6,7 +6,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   // 로그인 + 가계부가 있어야 들어올 수 있다
   const m = await requireHousehold();
   return (
-    <div className="flex min-h-full flex-1 flex-col lg:pl-56">
+    <div className="flex min-h-full flex-1 flex-col lg:pl-60">
       <MainArea>
         <OfflineSync userId={m.userId} />
         {children}
