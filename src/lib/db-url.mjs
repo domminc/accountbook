@@ -1,9 +1,9 @@
 // DB 주소·세션 비밀값 고르기. 앱(src/lib/db.ts, session.ts)과 배포 스크립트(scripts/migrate.mjs)가 같이 쓴다.
 //
-// 1. DATABASE_URL 이 제대로 있으면 그것
-// 2. DATABASE_URL 비밀번호 자리에 [YOUR-PASSWORD] 가 남아 있고, Vercel 의 Supabase 연동이 넣어 준
-//    POSTGRES_PASSWORD 가 같은 프로젝트 것이면 그 비밀번호로 채움
-// 3. 연동이 넣어 준 POSTGRES_URL (비밀번호가 채워진 풀러 주소)
+// 1. Vercel 의 Supabase 연동이 넣어 준 POSTGRES_URL (비밀번호가 채워진 풀러 주소). 연동이 있으면 늘 이것을 쓴다
+//    — DATABASE_URL 이 다른 프로젝트를 가리키도록 바뀌어도 데이터가 갑자기 다른 DB 로 옮겨 가지 않게.
+// 2. DATABASE_URL (로컬 개발·테스트, 연동 없이 배포할 때)
+// 3. DATABASE_URL 비밀번호 자리에 [YOUR-PASSWORD] 가 남아 있으면 같은 프로젝트의 POSTGRES_PASSWORD 로 채움
 import { createHmac } from "node:crypto";
 
 const PLACEHOLDER = /\[?YOUR[-_]PASSWORD\]?/i;
@@ -41,9 +41,10 @@ function clean(url) {
 /** @returns {{ url: string | null, source: string }} */
 export function resolveDatabaseUrl(env = process.env) {
   const direct = (env.DATABASE_URL ?? "").trim();
+  const integration = (env.POSTGRES_URL ?? "").trim();
+  if (integration && usable(integration)) return { url: clean(integration), source: "POSTGRES_URL(연동)" };
   if (direct && usable(direct)) return { url: direct, source: "DATABASE_URL" };
 
-  const integration = (env.POSTGRES_URL ?? "").trim();
   const password = env.POSTGRES_PASSWORD ?? "";
   if (direct && PLACEHOLDER.test(direct) && password) {
     const ref = projectRef(direct);
@@ -52,7 +53,6 @@ export function resolveDatabaseUrl(env = process.env) {
       return { url: direct.replace(PLACEHOLDER, encodeURIComponent(password)), source: "DATABASE_URL + POSTGRES_PASSWORD(연동)" };
     }
   }
-  if (integration && usable(integration)) return { url: clean(integration), source: "POSTGRES_URL(연동)" };
   return { url: direct || null, source: direct ? "DATABASE_URL (사용할 수 없음)" : "없음" };
 }
 

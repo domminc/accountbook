@@ -10,26 +10,25 @@ describe("resolveDatabaseUrl", () => {
     expect(resolveDatabaseUrl({ DATABASE_URL: url })).toEqual({ url, source: "DATABASE_URL" });
   });
 
-  it("[YOUR-PASSWORD] 가 남아 있으면 같은 프로젝트의 연동 비밀번호로 채움", () => {
+  it("[YOUR-PASSWORD] 가 남아 있고 연동 주소가 없으면 같은 프로젝트의 연동 비밀번호로 채움", () => {
     const r = resolveDatabaseUrl({
       DATABASE_URL: POOLER,
       POSTGRES_PASSWORD: "p@ss/word",
-      POSTGRES_URL: `postgres://postgres.${REF}:x@aws-0-ap-northeast-2.pooler.supabase.com:6543/postgres`,
+      POSTGRES_HOST: `db.${REF}.supabase.co`,
     });
     expect(r.url).toBe(POOLER.replace("[YOUR-PASSWORD]", "p%40ss%2Fword"));
     expect(r.source).toContain("POSTGRES_PASSWORD");
   });
 
-  it("다른 프로젝트 연동이면 연동 주소(POSTGRES_URL)를 쓰고 모르는 쿼리는 뺀다", () => {
-    const r = resolveDatabaseUrl({
-      DATABASE_URL: POOLER,
-      POSTGRES_PASSWORD: "x",
-      POSTGRES_URL: "postgres://postgres.other0000000:secret@aws-0-ap-northeast-2.pooler.supabase.com:6543/postgres?sslmode=require&supa=base-pooler.x",
-    });
-    expect(r).toEqual({
+  it("연동 주소(POSTGRES_URL)가 있으면 DATABASE_URL 보다 먼저 쓰고, 모르는 쿼리는 뺀다", () => {
+    const integration = "postgres://postgres.other0000000:secret@aws-0-ap-northeast-2.pooler.supabase.com:6543/postgres?sslmode=require&supa=base-pooler.x";
+    const expected = {
       url: "postgres://postgres.other0000000:secret@aws-0-ap-northeast-2.pooler.supabase.com:6543/postgres?sslmode=require",
       source: "POSTGRES_URL(연동)",
-    });
+    };
+    expect(resolveDatabaseUrl({ DATABASE_URL: POOLER, POSTGRES_URL: integration })).toEqual(expected);
+    // DATABASE_URL 을 다른 프로젝트의 올바른 주소로 고쳐도 연동 DB 를 계속 쓴다
+    expect(resolveDatabaseUrl({ DATABASE_URL: POOLER.replace("[YOUR-PASSWORD]", "pw"), POSTGRES_URL: integration })).toEqual(expected);
   });
 
   it("아무것도 쓸 수 없으면 DATABASE_URL 을 그대로 (오류는 /api/health 에서 보인다)", () => {
