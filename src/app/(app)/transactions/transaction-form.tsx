@@ -5,6 +5,8 @@ import { TX_KIND_LABEL, txKindOf, type CategoryKind, type TxKind } from "@/lib/d
 import { formatDateLabel, isValidDate, todayKST } from "@/lib/month";
 import { formatWon } from "@/lib/money";
 import { enqueue, isNetworkError } from "@/lib/offline-queue";
+import { RECEIPTS_PER_TRANSACTION } from "@/lib/receipt";
+import { ReceiptPicker } from "@/components/receipt-picker";
 import { inputClass, primaryButtonClass, secondaryButtonClass } from "@/components/ui";
 import type { KeptValues, TransactionActionState } from "./actions";
 
@@ -34,19 +36,27 @@ type Props = {
 };
 
 export function TransactionForm(props: Props) {
+  // 새 거래에 붙일 영수증 (브라우저에서 줄인 것)
+  const [receipts, setReceipts] = useState<Blob[]>([]);
+  const clearOnSuccess = (r: TransactionActionState): TransactionActionState => {
+    if (!r.error) setReceipts([]);
+    return r;
+  };
   const [state, formAction, pending] = useActionState<TransactionActionState, FormData>(async (prev, formData) => {
+    receipts.forEach((b, i) => formData.append("receipt", b, `receipt-${i + 1}.jpg`));
     // crypto.randomUUID 는 https(또는 localhost)에서만 있다
-    if (!props.offline || typeof crypto.randomUUID !== "function") return props.action(prev, formData);
+    if (!props.offline || typeof crypto.randomUUID !== "function") return clearOnSuccess(await props.action(prev, formData));
     // 기기에서 id를 정해 두면, 응답을 못 받아 다시 올려도 한 번만 저장된다
     formData.set("clientId", crypto.randomUUID());
-    if (navigator.onLine === false) return saveOffline(props, formData);
+    if (navigator.onLine === false) return clearOnSuccess(saveOffline(props, formData));
     try {
-      return await props.action(prev, formData);
+      return clearOnSuccess(await props.action(prev, formData));
     } catch (e) {
-      if (isNetworkError(e)) return saveOffline(props, formData);
+      if (isNetworkError(e)) return clearOnSuccess(saveOffline(props, formData));
       throw e;
     }
   }, {});
+
 
   // 저장하고 계속 입력하면 날짜·유형·분류·지출방법은 남기고 금액·내용·태그는 비운 새 폼을 띄운다
   const initial = state.kept ? fromKept(state.kept) : props.initial;
@@ -54,6 +64,8 @@ export function TransactionForm(props: Props) {
   return (
     <form action={formAction} className="flex flex-col gap-5">
       <Fields key={state.savedAt ?? 0} {...props} initial={initial} />
+
+      {props.allowSaveMore ? <ReceiptPicker files={receipts} onChange={setReceipts} max={RECEIPTS_PER_TRANSACTION} /> : null}
 
       {state.error ? (
         <p role="alert" className="text-sm text-danger">
@@ -94,6 +106,7 @@ function saveOffline(props: Props, formData: FormData): TransactionActionState {
   if (!group || !category) return { error: "소분류를 골라 주세요." };
   if (!amount) return { error: "금액을 1원 ~ 1조 원 사이로 입력해 주세요." };
 
+  const hadReceipt = formData.getAll("receipt").length > 0;
   const entries = [...formData.entries()]
     .filter((e): e is [string, string] => typeof e[1] === "string" && !e[0].startsWith("$ACTION"))
     .filter(([k]) => k !== "intent");
@@ -111,7 +124,9 @@ function saveOffline(props: Props, formData: FormData): TransactionActionState {
   const paymentMethodId = String(formData.get("paymentMethodId") ?? "") || null;
   return {
     savedAt: Date.now(),
-    message: "인터넷 연결이 없어 이 기기에 저장했어요. 연결되면 자동으로 올려요.",
+    message:
+      "인터넷 연결이 없어 이 기기에 저장했어요. 연결되면 자동으로 올려요." +
+      (hadReceipt ? " 영수증 사진은 연결된 뒤 거래를 열어 다시 붙여 주세요." : ""),
     kept: { kind, groupId: group.id, categoryId, occurredOn, paymentMethodId },
   };
 }

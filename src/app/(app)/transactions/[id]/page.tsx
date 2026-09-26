@@ -10,6 +10,8 @@ import { secondaryButtonClass } from "@/components/ui";
 import { deleteTransaction, saveTransaction } from "../actions";
 import { TransactionForm } from "../transaction-form";
 import { loadFormOptions } from "../form-data";
+import { ReceiptManager } from "../receipt-manager";
+import { listReceiptIds } from "@/lib/data/receipts";
 
 export default async function EditTransactionPage({ params }: PageProps<"/transactions/[id]">) {
   const m = await requireHousehold();
@@ -19,15 +21,18 @@ export default async function EditTransactionPage({ params }: PageProps<"/transa
   const data = await withUser(m.userId, async (tx) => {
     const t = await getTransaction(tx, m.householdId, id);
     if (!t) return null;
-    const options = await loadFormOptions(tx, m.householdId, {
-      categoryId: t.categoryId,
-      paymentMethodId: t.paymentMethodId,
-      tagIds: t.tags.map((x) => x.id),
-    });
-    return { t, options };
+    const [options, receiptIds] = await Promise.all([
+      loadFormOptions(tx, m.householdId, {
+        categoryId: t.categoryId,
+        paymentMethodId: t.paymentMethodId,
+        tagIds: t.tags.map((x) => x.id),
+      }),
+      listReceiptIds(tx, m.householdId, t.id),
+    ]);
+    return { t, options, receiptIds };
   });
   if (!data) notFound();
-  const { t, options } = data;
+  const { t, options, receiptIds } = data;
   const month = t.occurredOn.slice(0, 7);
 
   return (
@@ -56,6 +61,8 @@ export default async function EditTransactionPage({ params }: PageProps<"/transa
         action={saveTransaction.bind(null, t.id)}
         allowSaveMore={false}
       />
+
+      <ReceiptManager transactionId={t.id} receiptIds={receiptIds} />
 
       <div className="mt-6 flex gap-2 border-t border-border pt-6">
         <Link href={`/transactions/new?from=${t.id}`} className={`flex flex-1 items-center justify-center ${secondaryButtonClass}`}>

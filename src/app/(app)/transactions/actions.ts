@@ -10,6 +10,7 @@ import { parseAmount } from "@/lib/money";
 import { firstError, uuidSchema } from "@/lib/validation";
 import { txKindOf, type CategoryKind, type TxKind } from "@/lib/data/settings";
 import type { ActionState } from "@/lib/action-state";
+import { insertReceipts, readReceiptFiles } from "@/lib/data/receipts";
 
 /** "저장하고 계속 입력" 뒤 폼에 남길 값 */
 export type KeptValues = {
@@ -84,6 +85,9 @@ async function persistTransaction(id: string | null, formData: FormData): Promis
   });
   if (!parsed.success) return { error: firstError(parsed.error) };
   const v = parsed.data;
+  // 새 거래에 붙인 영수증 사진 (수정 화면에서는 따로 올린다)
+  const receipts = id ? { files: [] } : await readReceiptFiles(formData);
+  if ("error" in receipts) return { error: receipts.error };
 
   let kept: KeptValues;
   try {
@@ -129,6 +133,8 @@ async function persistTransaction(id: string | null, formData: FormData): Promis
         `;
         txId = row.id;
       }
+
+      if (!id) await insertReceipts(tx, m.householdId, m.userId, txId, receipts.files);
 
       for (const tagId of new Set(v.tagIds)) {
         await tx`

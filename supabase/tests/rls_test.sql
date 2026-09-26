@@ -242,6 +242,29 @@ delete from public.categories where id = :'a_cafe';
 select pg_temp.assert(
   (select count(*) from public.spending_limits where household_id = :'a_household') = 1, '소분류 삭제 시 그 한도도 삭제');
 
+-- 영수증: 같은 가구 거래에만, 구성원만 보고, 거래를 지우면 같이 지움, 이미지 형식만
+set request.jwt.claim.sub to '00000000-0000-0000-0000-00000000000a';
+set role authenticated;
+insert into public.transactions (household_id, occurred_on, amount, category_id, memo, created_by)
+select :'a_household', '2026-02-01', 3000, :'a_mart', '영수증 테스트', '00000000-0000-0000-0000-00000000000a';
+select id as a_receipt_tx from public.transactions where memo = '영수증 테스트' \gset
+insert into public.transaction_receipts (household_id, transaction_id, content_type, data)
+values (:'a_household', :'a_receipt_tx', 'image/jpeg', '\xffd8ffe0'::bytea);
+select pg_temp.expect_error(
+  format($$insert into public.transaction_receipts (household_id, transaction_id, content_type, data) values (%L, %L, 'image/svg+xml', '\x3c'::bytea)$$, :'a_household', :'a_receipt_tx'),
+  '영수증은 이미지 형식만');
+reset role;
+set request.jwt.claim.sub to '00000000-0000-0000-0000-00000000000b';
+set role authenticated;
+select pg_temp.assert((select count(*) from public.transaction_receipts) = 0, 'B는 A 영수증을 못 봄');
+select pg_temp.expect_error(
+  format($$insert into public.transaction_receipts (household_id, transaction_id, content_type, data) values (%L, %L, 'image/jpeg', '\xffd8ff'::bytea)$$, :'b_household', :'a_receipt_tx'),
+  'B 가구에서 A 거래에 영수증 차단 (복합 FK)');
+reset role;
+delete from public.transactions where id = :'a_receipt_tx';
+select pg_temp.assert(
+  (select count(*) from public.transaction_receipts where transaction_id = :'a_receipt_tx') = 0, '거래 삭제 시 영수증도 삭제');
+
 -- 결제일에 연결된 소분류를 지우면 결제일은 남고 구분만 비워진다
 delete from public.categories where name = '통신비' and household_id = :'a_household';
 select pg_temp.assert(

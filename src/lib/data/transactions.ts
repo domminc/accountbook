@@ -18,6 +18,8 @@ export type TransactionRow = {
   tags: { id: string; name: string }[];
   createdBy: string | null;
   creatorName: string | null;
+  /** 영수증 사진 수 (목록 표시용) */
+  receiptCount?: number;
 };
 
 export type TransactionFilters = {
@@ -45,6 +47,7 @@ type Row = {
   tags: { id: string; name: string }[];
   created_by: string | null;
   creator_name: string | null;
+  receipt_count: number;
 };
 
 function toRow(r: Row): TransactionRow {
@@ -64,6 +67,7 @@ function toRow(r: Row): TransactionRow {
     tags: r.tags,
     createdBy: r.created_by,
     creatorName: r.creator_name,
+    receiptCount: r.receipt_count,
   };
 }
 
@@ -74,6 +78,7 @@ function selectTransactions(tx: Tx) {
       g.id as group_id, g.name as group_name, g.kind as group_kind,
       pm.id as payment_method_id, pm.name as payment_method_name,
       m.display_name as creator_name,
+      (select count(*)::int from public.transaction_receipts rc where rc.transaction_id = t.id) as receipt_count,
       coalesce(
         (select json_agg(json_build_object('id', tg.id, 'name', tg.name) order by tg.sort_order)
          from public.transaction_tags tt join public.tags tg on tg.id = tt.tag_id

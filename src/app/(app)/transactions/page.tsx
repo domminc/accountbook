@@ -197,7 +197,7 @@ const AMOUNT_SIGN = { income: "+", saving: "", expense: "-" } as const;
 
 function TransactionItem({ row: r }: { row: TransactionRow }) {
   const title = r.categoryName ? `${r.groupName} · ${r.categoryName}` : "분류 필요";
-  const sub = [r.memo, r.paymentMethodName, r.creatorName].filter(Boolean).join(" · ");
+  const sub = [r.memo, r.paymentMethodName, r.creatorName, r.receiptCount ? `영수증 ${r.receiptCount}` : null].filter(Boolean).join(" · ");
   return (
     <Link href={`/transactions/${r.id}`} className="flex items-center gap-3 px-4 py-3">
       <div className="min-w-0 flex-1">
