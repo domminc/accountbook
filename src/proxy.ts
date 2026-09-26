@@ -3,7 +3,7 @@ import { SESSION_COOKIE, verifySessionToken } from "@/lib/session";
 
 // 로그인 없이 볼 수 있는 경로. /login/oauth 와 /auth/* 는 구글·카카오 로그인(보관 중)용.
 // /api/sms 는 로그인 쿠키 대신 토큰으로 확인한다
-const PUBLIC_PATHS = ["/login", "/signup", "/manifest.webmanifest", "/sw.js", "/api/sms"];
+const PUBLIC_PATHS = ["/login", "/signup", "/manifest.webmanifest", "/sw.js", "/api/sms", "/api/health"];
 const PUBLIC_PREFIXES = ["/login/", "/auth/"];
 
 export function proxy(request: NextRequest) {
