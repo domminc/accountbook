@@ -17,9 +17,7 @@ PostgreSQL 15 이상이면 어디든 된다. Supabase를 쓰는 경우:
 
 ### 2. DB 스키마 적용
 
-`supabase/migrations/` 안의 SQL 파일을 이름 순서대로 실행한다. 둘 중 하나:
-- Supabase **SQL Editor**에 붙여넣고 실행
-- `for f in supabase/migrations/*.sql; do psql "$DATABASE_URL" -f "$f"; done`
+`npm run db:migrate` — `supabase/migrations/` 중 아직 적용하지 않은 SQL을 이름 순서대로 실행한다 (`.env.local`의 `DATABASE_URL`을 쓰려면 `DATABASE_URL=... npm run db:migrate`). Vercel 배포 때는 `vercel-build`가 자동으로 실행한다.
 
 ### 3. 로컬 실행
 

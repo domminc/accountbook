@@ -7,16 +7,8 @@
 1. [supabase.com](https://supabase.com)에서 새 프로젝트를 만든다.
    - Region: **Northeast Asia (Seoul)**
    - Database Password: 길게 만들고 따로 적어 둔다.
-2. 왼쪽 메뉴 **SQL Editor**에서 `supabase/migrations/` 폴더의 파일을 **이름 순서대로** 하나씩 붙여넣고 **Run**.
-   - `20260926000000_init.sql`
-   - `20260927000000_event_import_batch.sql`
-   - `20260928000000_invites.sql`
-   - `20260929000000_harden_grants.sql`
-   - `20260930000000_finance.sql`
-   - `20261001000000_card_payment_method.sql`
-   - `20261002000000_spending_limits.sql`
-   - `20261003000000_receipts.sql`
-   - `20261004000000_sms_inbound.sql`
+2. DB 표(테이블) 만들기는 **할 일 없음**. Vercel이 배포할 때마다 `supabase/migrations/` 중 아직 적용하지 않은 것을 자동으로 적용한다 (`scripts/migrate.mjs`, 기록은 `accountbook_meta.migrations`).
+   - 직접 하고 싶으면 PC에서 `DATABASE_URL=... npm run db:migrate`
 3. 이 앱은 Supabase의 자동 API(PostgREST)와 로그인(Auth)을 쓰지 않는다. 쓰지 않는 입구는 닫아 둔다.
    - **Project Settings → Data API**: Data API 끄기 (또는 Exposed schemas에서 `public` 빼기)
    - **Authentication → Sign In / Providers**: *Allow new users to sign up* 끄기
@@ -36,7 +28,7 @@
    | `DATABASE_URL` | 1-4에서 복사한 연결 문자열 |
    | `SESSION_SECRET` | 32자 이상 아무 문자열. 예: 터미널에서 `openssl rand -base64 48` |
 
-3. **Deploy**. 끝나면 `https://<프로젝트>.vercel.app` 주소가 생긴다.
+3. **Deploy**. 빌드 전에 DB 표를 자동으로 만든다 (`vercel.json` → `npm run vercel-build`). 끝나면 `https://<프로젝트>.vercel.app` 주소가 생긴다.
 4. 기본 브랜치에 올릴 때마다 자동으로 다시 배포된다. 다른 브랜치는 미리보기 주소로 배포된다.
 
 ## 3. 처음 쓰기
@@ -51,7 +43,9 @@
 
 ## 업데이트할 때
 
-- 새 마이그레이션 파일(`supabase/migrations/`)이 생기면, 배포 **전에** SQL Editor에서 그 파일만 실행한다. 이미 실행한 파일은 다시 실행하지 않는다.
+- 새 마이그레이션 파일(`supabase/migrations/`)이 생겨도 배포할 때 자동으로 적용된다. 이미 적용한 파일은 다시 실행하지 않는다.
+- 전에 SQL Editor로 일부 파일을 직접 실행했어도 괜찮다. 이미 있는 것은 알아보고 건너뛴다.
+- 배포 로그(Vercel → Deployments → Build Logs)에 `migrate: DB 가 최신이에요.`가 보이면 정상이다. 실패하면 배포도 멈추므로 옛 화면이 그대로 유지된다.
 - `SESSION_SECRET`을 바꾸면 모든 기기가 로그아웃된다. (비밀번호는 그대로)
 
 ## 백업

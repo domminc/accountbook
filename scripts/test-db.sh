@@ -25,7 +25,7 @@ run() {
 trap cleanup EXIT
 
 run "'$PG_BIN/initdb' -D '$TMP/data' -U postgres -A trust -E UTF8 --locale=C.UTF-8 >/dev/null"
-run "'$PG_BIN/pg_ctl' -D '$TMP/data' -o '-p $PORT -k $TMP -c listen_addresses=' -l '$TMP/log' -w start >/dev/null"
+run "'$PG_BIN/pg_ctl' -D '$TMP/data' -o '-p $PORT -k $TMP -c listen_addresses=127.0.0.1' -l '$TMP/log' -w start >/dev/null"
 
 PSQL=("$PG_BIN/psql" -h "$TMP" -p "$PORT" -U postgres -d postgres -v ON_ERROR_STOP=1 -q -X)
 
@@ -34,3 +34,20 @@ for f in "$ROOT"/supabase/migrations/*.sql; do
   "${PSQL[@]}" -f "$f"
 done
 "${PSQL[@]}" -o /dev/null -f "$ROOT/supabase/tests/rls_test.sql"
+
+# scripts/migrate.mjs (Vercel 배포 때 자동 적용): 새 DB에 두 번 돌려도 되고,
+# SQL Editor 로 일부만 적용해 둔 DB 는 이미 있는 것은 건너뛰고 나머지만 적용한다.
+"${PSQL[@]}" -c "create database migrate_fresh" -c "create database migrate_partial"
+db_url() { echo "postgres://postgres@127.0.0.1:$PORT/$1"; }
+DATABASE_URL="$(db_url migrate_fresh)" node "$ROOT/scripts/migrate.mjs" >/dev/null
+out="$(DATABASE_URL="$(db_url migrate_fresh)" node "$ROOT/scripts/migrate.mjs")"
+echo "$out" | grep -q "적용$" && { echo "FAIL: 두 번째 실행에서 다시 적용함"; echo "$out"; exit 1; }
+n=0
+for f in "$ROOT"/supabase/migrations/*.sql; do
+  n=$((n + 1))
+  [ "$n" -le 5 ] && "${PSQL[@]}" -d migrate_partial -f "$f"
+done
+out="$(DATABASE_URL="$(db_url migrate_partial)" node "$ROOT/scripts/migrate.mjs")"
+[ "$(echo "$out" | grep -c "기록만 남김")" -ge 4 ] || { echo "FAIL: 이미 적용한 파일을 알아보지 못함"; echo "$out"; exit 1; }
+"${PSQL[@]}" -d migrate_partial -o /dev/null -f "$ROOT/supabase/tests/rls_test.sql"
+echo "OK: migrate.mjs (새 DB 두 번, 일부 적용된 DB)"
