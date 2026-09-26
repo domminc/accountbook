@@ -42,7 +42,7 @@ test("오프라인에서 입력한 거래는 기기에 저장했다가 연결되
   const rows = page.getByRole("link").filter({ hasText: "식비 · 마트" });
   await expect(rows).toHaveCount(2);
   await expect(rows.filter({ hasText: "지하철 장보기" })).toHaveCount(1);
-  await expect(page.getByText("12,000").first()).toBeVisible();
+  await expect(rows.filter({ hasText: "지하철 장보기" })).toContainText("12,000");
 
   // 응답을 못 받아 같은 거래를 다시 올려도 한 번만 저장된다
   await page.evaluate((raw) => localStorage.setItem("ab_offline_tx", raw!), queued);
