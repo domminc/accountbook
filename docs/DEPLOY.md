@@ -12,6 +12,7 @@
    - `20260927000000_event_import_batch.sql`
    - `20260928000000_invites.sql`
    - `20260929000000_harden_grants.sql`
+   - `20260930000000_finance.sql`
 3. 이 앱은 Supabase의 자동 API(PostgREST)와 로그인(Auth)을 쓰지 않는다. 쓰지 않는 입구는 닫아 둔다.
    - **Project Settings → Data API**: Data API 끄기 (또는 Exposed schemas에서 `public` 빼기)
    - **Authentication → Sign In / Providers**: *Allow new users to sign up* 끄기

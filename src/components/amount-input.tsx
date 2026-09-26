@@ -5,6 +5,7 @@ import { formatWon } from "@/lib/money";
 
 /** 천 단위 쉼표가 붙는 금액 입력 */
 export function AmountInput({
+  id,
   name,
   defaultValue,
   className,
@@ -12,6 +13,7 @@ export function AmountInput({
   "aria-label": ariaLabel,
   placeholder = "0",
 }: {
+  id?: string;
   name: string;
   defaultValue?: number | null;
   className?: string;
@@ -30,6 +32,7 @@ export function AmountInput({
   return (
     <div className="relative">
       <input
+        id={id}
         name={name}
         required={required}
         inputMode="numeric"

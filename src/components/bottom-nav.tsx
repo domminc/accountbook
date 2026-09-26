@@ -8,7 +8,8 @@ const ITEMS = [
   { href: "/transactions", label: "내역", match: (p: string) => p.startsWith("/transactions") },
   { href: "/reserve", label: "예비비", match: (p: string) => p.startsWith("/reserve") },
   { href: "/reports", label: "연간", match: (p: string) => p.startsWith("/reports") },
-  { href: "/settings", label: "설정", match: (p: string) => p.startsWith("/settings") },
+  // 자산·결제일 화면은 설정에서 들어간다
+  { href: "/settings", label: "설정", match: (p: string) => p.startsWith("/settings") || p.startsWith("/assets") },
 ];
 
 export function BottomNav() {

@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { withUser } from "@/lib/db";
 import { requireHousehold } from "@/lib/household";
-import { addMonths, formatDateLabel, monthRange, parseMonth, todayKST } from "@/lib/month";
+import { addMonths, currentMonthKST, formatDateLabel, monthRange, parseMonth, todayKST } from "@/lib/month";
 import { formatWon } from "@/lib/money";
 import { formatDelta, formatPercent } from "@/lib/format";
 import { loadCategoryGroups, loadSimpleItems, type CategoryGroup } from "@/lib/data/settings";
 import { listTransactions } from "@/lib/data/transactions";
 import { loadBudgets, loadEvents, loadGoals, type GoalKind, type Goals } from "@/lib/data/plan";
+import { loadDuePayments, type DuePayment } from "@/lib/data/payments";
 import {
   budgetRows,
   byPaymentMethod,
@@ -34,7 +35,7 @@ export default async function MonthSummaryPage({ searchParams }: PageProps<"/">)
   const today = todayKST();
 
   const data = await withUser(m.userId, async (tx) => {
-    const [rows, prevRows, groups, methods, tags, budgets, goals, events] = await Promise.all([
+    const [rows, prevRows, groups, methods, tags, budgets, goals, events, due] = await Promise.all([
       listTransactions(tx, m.householdId, range),
       listTransactions(tx, m.householdId, monthRange(addMonths(month, -1))),
       loadCategoryGroups(tx, m.householdId),
@@ -43,8 +44,10 @@ export default async function MonthSummaryPage({ searchParams }: PageProps<"/">)
       loadBudgets(tx, m.householdId, month),
       loadGoals(tx, m.householdId, month),
       loadEvents(tx, m.householdId, range),
+      // 결제 예정은 이번 달을 볼 때만
+      month === currentMonthKST() ? loadDuePayments(tx, m.householdId, month, today) : Promise.resolve([]),
     ]);
-    return { rows, prevRows, groups, methods, tags, budgets, goals, events };
+    return { rows, prevRows, groups, methods, tags, budgets, goals, events, due };
   });
 
   const totals = monthTotals(data.rows);
@@ -85,6 +88,7 @@ export default async function MonthSummaryPage({ searchParams }: PageProps<"/">)
         </div>
       </div>
 
+      <DueCard due={data.due} month={month} />
       <GoalsCard goals={data.goals} totals={totals} rows={data.rows} groups={data.groups} month={month} />
       <BudgetCard rows={budgetRows(data.rows, data.groups, data.budgets)} month={month} />
       <ShareCard items={spendingShare(data.rows, data.groups)} />
@@ -134,7 +138,7 @@ function SummaryCard({ totals, prev }: { totals: MonthTotals; prev: MonthTotals 
   return (
     <section className={`p-5 ${cardClass}`} aria-label="이달 요약">
       <p className="text-sm text-muted">남은 금액 (수입 − 지출)</p>
-      <p className={`text-4xl font-bold ${totals.remaining < 0 ? "text-danger" : ""}`}>{formatWon(totals.remaining)}원</p>
+      <p className={`text-3xl font-bold break-keep sm:text-4xl ${totals.remaining < 0 ? "text-danger" : ""}`}>{formatWon(totals.remaining)}원</p>
       <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-border pt-4">
         <div>
           <dt className="text-sm text-muted">총 수입</dt>
@@ -428,6 +432,42 @@ function AmountList({ title, items, empty }: { title: string; items: NamedAmount
           ))}
         </ul>
       )}
+    </section>
+  );
+}
+
+function DueCard({ due, month }: { due: DuePayment[]; month: string }) {
+  const pending = due.filter((p) => p.status !== "entered");
+  if (pending.length === 0) return null;
+  const overdue = pending.filter((p) => p.status === "overdue" || p.status === "today");
+  return (
+    <section className={`p-5 ${cardClass}`}>
+      <div className="flex items-baseline justify-between">
+        <h2 className="font-semibold">결제 예정</h2>
+        <Link href={`/assets/payments?month=${month}`} className="text-sm text-muted">
+          결제일 관리
+        </Link>
+      </div>
+      {overdue.length > 0 ? (
+        <p className="mt-1 text-sm text-danger">▲ 결제일이 지났거나 오늘인데 아직 입력하지 않은 결제가 {overdue.length}건 있어요.</p>
+      ) : null}
+      <ul className="mt-2 divide-y divide-border">
+        {pending.slice(0, 5).map((p) => (
+          <li key={p.id} className="flex items-center justify-between gap-3 py-2 text-sm">
+            <span className="min-w-0 truncate">
+              {p.content}
+              <span className="text-muted"> · {formatDateLabel(p.date)}</span>
+            </span>
+            <span className="flex shrink-0 items-baseline gap-2">
+              <span className="tabular-nums">{formatWon(p.amount)}</span>
+              <span className={`text-xs ${p.status === "upcoming" ? "text-muted" : "font-semibold text-danger"}`}>
+                {p.status === "upcoming" ? `D-${p.daysLeft}` : p.status === "today" ? "오늘" : "지남"}
+              </span>
+            </span>
+          </li>
+        ))}
+      </ul>
+      {pending.length > 5 ? <p className="mt-1 text-xs text-muted">외 {pending.length - 5}건</p> : null}
     </section>
   );
 }

@@ -167,6 +167,40 @@ select pg_temp.assert((select status from public.invite_info('tok-valid')) = 'us
 select pg_temp.expect_error($$select public.accept_invite('tok-valid', 'D')$$, '사용한 초대 거절');
 reset role;
 
+-- ── 2차: 자산·대출·결제일도 가구 단위로 격리 ──
+set request.jwt.claim.sub to '00000000-0000-0000-0000-00000000000a';
+set role authenticated;
+insert into public.loans (household_id, name, principal) values (:'a_household', '주택담보', 100000000);
+insert into public.loan_repayments (household_id, loan_id, paid_on, principal, interest)
+select :'a_household', id, '2026-01-07', 1000000, 300000 from public.loans;
+insert into public.bank_accounts (household_id, bank, account_last4) values (:'a_household', '국민', '1234');
+select pg_temp.expect_error(
+  format($$insert into public.bank_accounts (household_id, bank, account_last4) values (%L, '국민', '123-456')$$, :'a_household'),
+  '계좌번호는 끝 4자리 숫자만');
+insert into public.recurring_payments (household_id, content, amount, pay_day, category_id)
+select :'a_household', '통신비', 55000, 25, id from public.categories where name = '통신비';
+reset role;
+
+select id as a_loan from public.loans \gset
+
+set request.jwt.claim.sub to '00000000-0000-0000-0000-00000000000b';
+set role authenticated;
+select pg_temp.assert((select count(*) from public.loans) = 0, 'B는 A 대출을 못 봄');
+select pg_temp.assert((select count(*) from public.recurring_payments) = 0, 'B는 A 결제일을 못 봄');
+select pg_temp.expect_error(
+  format($$insert into public.loan_repayments (household_id, loan_id, paid_on) values (%L, %L, '2026-01-01')$$, :'b_household', :'a_loan'),
+  'B 가구에서 A 대출 참조 차단 (복합 FK)');
+select pg_temp.expect_error(
+  format($$insert into public.loan_repayments (household_id, loan_id, paid_on) values (%L, %L, '2026-01-01')$$, :'a_household', :'a_loan'),
+  'B가 A 가구에 상환 기록 차단 (RLS)');
+reset role;
+
+-- 결제일에 연결된 소분류를 지우면 결제일은 남고 구분만 비워진다
+delete from public.categories where name = '통신비' and household_id = :'a_household';
+select pg_temp.assert(
+  (select category_id is null and household_id = :'a_household' from public.recurring_payments where content = '통신비'),
+  '소분류 삭제 시 결제일 구분만 null');
+
 -- ── 가구 삭제는 cascade로 전부 지운다 ──
 delete from public.households where id = :'a_household';
 select pg_temp.assert(

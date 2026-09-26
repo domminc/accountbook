@@ -21,6 +21,8 @@ test("초대 링크로 배우자가 가입·참여하고 같은 가계부를 함
   await spouse.goto(link);
   await expect(spouse).toHaveURL(/\/login\?next=%2Finvite%2F/);
   await spouse.getByRole("link", { name: "처음이신가요? 아이디 만들기" }).click();
+  // 로그인 화면에도 같은 이름의 입력 칸이 있으므로 가입 화면으로 바뀐 뒤 입력한다
+  await expect(spouse).toHaveURL(/\/signup\?next=%2Finvite%2F/);
   await spouse.locator("input[name=loginId]").fill(uid());
   await spouse.locator("input[name=password]").fill(PASSWORD);
   await spouse.locator("input[name=passwordConfirm]").fill(PASSWORD);
