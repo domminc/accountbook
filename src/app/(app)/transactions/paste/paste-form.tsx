@@ -7,11 +7,15 @@ import type { PasteRow } from "@/lib/sms-suggest";
 import { KIND_LABEL } from "@/lib/data/settings";
 import { inputClass, primaryButtonClass, secondaryButtonClass, smallInputClass } from "@/components/ui";
 import type { FormGroup, FormOption } from "../transaction-form";
-import { analyzePaste, savePasted } from "./actions";
+import { analyzePaste, dismissSms, savePasted, type InboxRow } from "./actions";
 
 type Row = {
-  key: number;
+  /** 받은 문자는 문자 id, 붙여 넣은 것은 순번 (서버·브라우저에서 같은 값이어야 한다) */
+  key: string;
   source: PasteRow;
+  /** 자동으로 받은 문자면 그 id */
+  messageId: string | null;
+  tagIds: string[];
   include: boolean;
   date: string;
   amount: string;
@@ -23,9 +27,36 @@ type Row = {
 // 지출 먼저 (문자는 대부분 카드 지출)
 const GROUP_ORDER = ["variable_expense", "fixed_expense", "income", "saving"];
 
-export function PasteForm({ groups, paymentMethods }: { groups: FormGroup[]; paymentMethods: FormOption[] }) {
+let nextKey = 0;
+function toRow(s: PasteRow, messageId: string | null): Row {
+  return {
+    key: messageId ?? `p${nextKey++}`,
+    source: s,
+    messageId,
+    tagIds: s.tagIds,
+    // 취소 문자·원화 금액이 없는 문자·이미 입력한 것 같은 문자는 빼 둔다
+    include: !s.cancelled && s.amount !== null && !s.duplicateOf,
+    date: s.date,
+    amount: s.amount ? formatWon(s.amount) : "",
+    memo: s.merchant,
+    categoryId: s.categoryId ?? "",
+    paymentMethodId: s.paymentMethodId ?? "",
+  };
+}
+
+export function PasteForm({
+  groups,
+  paymentMethods,
+  tags,
+  inbox,
+}: {
+  groups: FormGroup[];
+  paymentMethods: FormOption[];
+  tags: FormOption[];
+  inbox: InboxRow[];
+}) {
   const [text, setText] = useState("");
-  const [rows, setRows] = useState<Row[] | null>(null);
+  const [rows, setRows] = useState<Row[] | null>(() => (inbox.length > 0 ? inbox.map((r) => toRow(r, r.messageId)) : null));
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -40,26 +71,24 @@ export function PasteForm({ groups, paymentMethods }: { groups: FormGroup[]; pay
       const r = await analyzePaste(text);
       if ("error" in r) {
         setError(r.error);
-        setRows(null);
         return;
       }
-      setRows(
-        r.rows.map((s, i) => ({
-          key: i,
-          source: s,
-          // 취소 문자·원화 금액이 없는 문자·이미 입력한 것 같은 문자는 빼 둔다
-          include: !s.cancelled && s.amount !== null && !s.duplicateOf,
-          date: s.date,
-          amount: s.amount ? formatWon(s.amount) : "",
-          memo: s.merchant,
-          categoryId: s.categoryId ?? "",
-          paymentMethodId: s.paymentMethodId ?? "",
-        })),
-      );
+      // 자동으로 받은 문자는 남기고, 붙여 넣은 것만 새로
+      setRows((prev) => [...(prev ?? []).filter((x) => x.messageId), ...r.rows.map((x) => toRow(x, null))]);
     });
   }
 
-  function update(key: number, patch: Partial<Row>) {
+  function dismiss(row: Row) {
+    if (!row.messageId || !window.confirm("이 문자를 저장하지 않고 버릴까요?")) return;
+    setError(null);
+    startTransition(async () => {
+      const r = await dismissSms([row.messageId!]);
+      if (r.error) setError(r.error);
+      else setRows((prev) => prev?.filter((x) => x.key !== row.key) ?? null);
+    });
+  }
+
+  function update(key: string, patch: Partial<Row>) {
     setRows((prev) => prev?.map((r) => (r.key === key ? { ...r, ...patch } : r)) ?? null);
   }
 
@@ -75,6 +104,8 @@ export function PasteForm({ groups, paymentMethods }: { groups: FormGroup[]; pay
           memo: c.memo,
           categoryId: c.categoryId,
           paymentMethodId: expenseCategory.has(c.categoryId) && c.paymentMethodId ? c.paymentMethodId : null,
+          tagIds: c.tagIds,
+          messageId: c.messageId,
         })),
       );
       if (r?.error) setError(r.error);
@@ -107,6 +138,11 @@ export function PasteForm({ groups, paymentMethods }: { groups: FormGroup[]; pay
       {rows ? (
         <>
           <h2 className="mt-2 font-semibold">찾은 거래 {rows.length}건</h2>
+          {rows.some((r) => r.messageId) ? (
+            <p className="-mt-2 text-sm text-muted">
+              자동으로 받은 문자 중 확인이 필요한 {rows.filter((r) => r.messageId).length}건이 포함돼 있어요.
+            </p>
+          ) : null}
           <ul className="flex flex-col gap-3">
             {rows.map((r, i) => {
               const s = r.source;
@@ -129,9 +165,22 @@ export function PasteForm({ groups, paymentMethods }: { groups: FormGroup[]; pay
                         {s.merchant || "가맹점 모름"} {s.amount !== null ? `${formatWon(s.amount)}원` : ""}
                       </span>
                       <span className="block text-xs text-muted">
-                        {[formatDateLabel(s.date) + (s.time ? ` ${s.time}` : ""), s.issuer, s.installment].filter(Boolean).join(" · ")}
+                        {[formatDateLabel(s.date) + (s.time ? ` ${s.time}` : ""), s.issuer, s.installment, r.messageId ? "자동으로 받음" : null]
+                          .filter(Boolean)
+                          .join(" · ")}
                       </span>
                     </span>
+                    {r.messageId ? (
+                      <button
+                        type="button"
+                        onClick={() => dismiss(r)}
+                        disabled={pending}
+                        aria-label={`${n} 받은 문자 버리기`}
+                        className="shrink-0 text-xs text-muted underline underline-offset-4"
+                      >
+                        버리기
+                      </button>
+                    ) : null}
                   </label>
 
                   {s.cancelled ? (
@@ -230,6 +279,31 @@ export function PasteForm({ groups, paymentMethods }: { groups: FormGroup[]; pay
                           ))}
                         </select>
                       </div>
+                      {tags.length > 0 ? (
+                        <div className="col-span-2">
+                          <span className="text-xs text-muted">태그</span>
+                          <div className="mt-1 flex flex-wrap gap-1.5">
+                            {tags.map((t) => {
+                              const on = r.tagIds.includes(t.id);
+                              return (
+                                <button
+                                  key={t.id}
+                                  type="button"
+                                  role="checkbox"
+                                  aria-checked={on}
+                                  aria-label={`${n} 태그 ${t.name}`}
+                                  onClick={() => update(r.key, { tagIds: on ? r.tagIds.filter((x) => x !== t.id) : [...r.tagIds, t.id] })}
+                                  className={`h-8 rounded-full border px-3 text-xs ${
+                                    on ? "border-accent bg-accent text-accent-foreground" : "border-border bg-surface"
+                                  }`}
+                                >
+                                  #{t.name}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
                   ) : null}
                 </li>

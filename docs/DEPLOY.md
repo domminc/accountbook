@@ -16,6 +16,7 @@
    - `20261001000000_card_payment_method.sql`
    - `20261002000000_spending_limits.sql`
    - `20261003000000_receipts.sql`
+   - `20261004000000_sms_inbound.sql`
 3. 이 앱은 Supabase의 자동 API(PostgREST)와 로그인(Auth)을 쓰지 않는다. 쓰지 않는 입구는 닫아 둔다.
    - **Project Settings → Data API**: Data API 끄기 (또는 Exposed schemas에서 `public` 빼기)
    - **Authentication → Sign In / Providers**: *Allow new users to sign up* 끄기
@@ -46,6 +47,7 @@
    - 미리보기의 월별 수입·지출·저축이 시트와 같은지 보고 **가져오기**
 3. **설정 → 구성원·초대**에서 초대 링크를 만들어 배우자에게 보낸다. 배우자는 링크를 열고 아이디를 만들면 바로 같은 가계부로 들어온다.
 4. 휴대폰 브라우저 메뉴의 **홈 화면에 추가**로 앱처럼 쓸 수 있다.
+5. (선택) **설정 → 문자 자동 입력**에서 기기별 토큰을 만들고, 안내대로 아이폰 단축어나 안드로이드 자동화 앱에 넣으면 카드 승인 문자가 오는 대로 가계부에 들어간다.
 
 ## 업데이트할 때
 

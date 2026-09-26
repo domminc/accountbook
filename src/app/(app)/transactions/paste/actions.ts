@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -7,8 +8,9 @@ import { dbErrorMessage, withUser } from "@/lib/db";
 import { requireHousehold } from "@/lib/household";
 import { isValidDate, todayKST } from "@/lib/month";
 import { MAX_AMOUNT } from "@/lib/money";
-import { parseMessages } from "@/lib/sms";
-import { normalizeMemo, suggestRows, type PasteRow } from "@/lib/sms-suggest";
+import { parseMessage, parseMessages } from "@/lib/sms";
+import type { PasteRow } from "@/lib/sms-suggest";
+import { suggestForMessages } from "@/lib/data/paste";
 import { firstError } from "@/lib/validation";
 import { txKindOf, type CategoryKind } from "@/lib/data/settings";
 
@@ -23,41 +25,8 @@ export async function analyzePaste(text: string): Promise<{ rows: PasteRow[] } |
   const messages = parseMessages(text, todayKST()).slice(0, MAX_ROWS);
   if (messages.length === 0) return { error: "금액이나 날짜가 있는 문자를 찾지 못했어요." };
 
-  const keys = [...new Set(messages.map((x) => normalizeMemo(x.merchant)).filter(Boolean))];
-  const dates = [...new Set(messages.map((x) => x.date))];
   try {
-    const ctx = await withUser(m.userId, async (tx) => {
-      const [cards, methods, history, existing] = await Promise.all([
-        tx<{ name: string; issuer: string | null; payment_method_id: string | null }[]>`
-          select name, issuer, payment_method_id from public.cards where household_id = ${m.householdId}
-        `,
-        tx<{ id: string; name: string }[]>`
-          select id, name from public.payment_methods where household_id = ${m.householdId} and not is_hidden order by sort_order
-        `,
-        keys.length === 0
-          ? Promise.resolve([])
-          : tx<{ k: string; category_id: string | null; payment_method_id: string | null }[]>`
-              select distinct on (k) k, category_id, payment_method_id from (
-                select lower(regexp_replace(memo, '\\s+', '', 'g')) as k, category_id, payment_method_id, occurred_on, created_at
-                from public.transactions
-                where household_id = ${m.householdId} and memo is not null
-              ) t
-              where k in ${tx(keys)}
-              order by k, occurred_on desc, created_at desc
-            `,
-        tx<{ occurred_on: string; amount: number; memo: string | null }[]>`
-          select occurred_on, amount, memo from public.transactions
-          where household_id = ${m.householdId} and occurred_on in ${tx(dates)}
-        `,
-      ]);
-      return {
-        cards: cards.map((c) => ({ name: c.name, issuer: c.issuer, paymentMethodId: c.payment_method_id })),
-        paymentMethods: methods,
-        history: new Map(history.map((h) => [h.k, { categoryId: h.category_id, paymentMethodId: h.payment_method_id }])),
-        existing: existing.map((e) => ({ date: e.occurred_on, amount: e.amount, memo: e.memo })),
-      };
-    });
-    return { rows: suggestRows(messages, ctx) };
+    return { rows: await withUser(m.userId, (tx) => suggestForMessages(tx, m.householdId, messages)) };
   } catch (e) {
     return { error: dbErrorMessage(e) };
   }
@@ -73,6 +42,9 @@ const rowSchema = z.object({
     .transform((v) => v || null),
   categoryId: z.uuid({ error: "소분류를 골라 주세요." }),
   paymentMethodId: z.uuid().nullable(),
+  tagIds: z.array(z.uuid()).max(20).default([]),
+  /** 자동으로 받은 문자에서 온 것이면 그 문자 id (저장하면 확인 끝) */
+  messageId: z.uuid().nullable().default(null),
 });
 const rowsSchema = z.array(rowSchema).min(1, "저장할 거래를 골라 주세요.").max(MAX_ROWS);
 
@@ -99,8 +71,11 @@ export async function savePasted(rows: PasteSaveRow[]): Promise<{ error: string 
       `;
       const kindOf = new Map(cats.map((c) => [c.id, txKindOf(c.kind)]));
       if (kindOf.size !== ids.length) throw new UserError("소분류를 다시 골라 주세요.");
+      // id를 미리 정해 두고 넣는다 (태그·문자 연결에 쓴다)
+      const inserted = list.map(() => ({ id: randomUUID() }));
       await tx`insert into public.transactions ${tx(
-        list.map((r) => ({
+        list.map((r, i) => ({
+          id: inserted[i].id,
           household_id: m.householdId,
           occurred_on: r.date,
           amount: r.amount,
@@ -111,6 +86,17 @@ export async function savePasted(rows: PasteSaveRow[]): Promise<{ error: string 
           created_by: m.userId,
         })),
       )}`;
+      const tags = list.flatMap((r, i) =>
+        [...new Set(r.tagIds)].map((tagId) => ({ transaction_id: inserted[i].id, tag_id: tagId, household_id: m.householdId })),
+      );
+      if (tags.length > 0) await tx`insert into public.transaction_tags ${tx(tags)}`;
+      for (const [i, r] of list.entries()) {
+        if (!r.messageId) continue;
+        await tx`
+          update public.sms_messages set status = 'saved', transaction_id = ${inserted[i].id}
+          where id = ${r.messageId} and household_id = ${m.householdId}
+        `;
+      }
     });
   } catch (e) {
     return { error: e instanceof UserError ? e.message : dbErrorMessage(e) };
@@ -121,3 +107,36 @@ export async function savePasted(rows: PasteSaveRow[]): Promise<{ error: string 
 }
 
 class UserError extends Error {}
+
+export type InboxRow = PasteRow & { messageId: string };
+
+/** 자동으로 받았지만 확인이 필요한 문자 (소분류를 모르거나, 취소·중복 의심) */
+export async function loadPendingSms(): Promise<InboxRow[]> {
+  const m = await requireHousehold();
+  return withUser(m.userId, async (tx) => {
+    const msgs = await tx<{ id: string; raw: string; received_at: Date }[]>`
+      select id, raw, received_at from public.sms_messages
+      where household_id = ${m.householdId} and status = 'pending' order by received_at limit ${MAX_ROWS}
+    `;
+    const parsed = msgs.map((x) => ({ id: x.id, p: parseMessage(x.raw, todayKST(x.received_at)) ?? null })).filter((x) => x.p);
+    const rows = await suggestForMessages(tx, m.householdId, parsed.map((x) => x.p!));
+    return rows.map((r, i) => ({ ...r, messageId: parsed[i].id }));
+  });
+}
+
+/** 확인한 자동 입력 문자를 버린다 (저장하지 않음) */
+export async function dismissSms(ids: string[]): Promise<{ error?: string }> {
+  const parsed = z.array(z.uuid()).max(MAX_ROWS).safeParse(ids);
+  if (!parsed.success) return { error: "입력값을 확인해 주세요." };
+  const m = await requireHousehold();
+  if (parsed.data.length === 0) return {};
+  try {
+    await withUser(m.userId, (tx) =>
+      tx`update public.sms_messages set status = 'dismissed' where household_id = ${m.householdId} and id in ${tx(parsed.data)}`,
+    );
+  } catch (e) {
+    return { error: dbErrorMessage(e) };
+  }
+  revalidatePath("/transactions/paste");
+  return {};
+}

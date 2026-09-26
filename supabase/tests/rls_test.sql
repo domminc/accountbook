@@ -265,6 +265,28 @@ delete from public.transactions where id = :'a_receipt_tx';
 select pg_temp.assert(
   (select count(*) from public.transaction_receipts where transaction_id = :'a_receipt_tx') = 0, '거래 삭제 시 영수증도 삭제');
 
+-- 문자 자동 입력: 토큰은 자기 이름으로만 만들고 구성원만 보며, 같은 문자는 한 번만
+set request.jwt.claim.sub to '00000000-0000-0000-0000-00000000000a';
+set role authenticated;
+insert into public.inbound_tokens (household_id, user_id, name, token_hash)
+values (:'a_household', '00000000-0000-0000-0000-00000000000a', '아이폰', repeat('a', 64));
+select pg_temp.expect_error(
+  format($$insert into public.inbound_tokens (household_id, user_id, name, token_hash) values (%L, '00000000-0000-0000-0000-00000000000c', '남의것', %L)$$, :'a_household', repeat('b', 64)),
+  '다른 사람 이름으로 토큰 생성 차단');
+select pg_temp.expect_error(
+  $$update public.inbound_tokens set token_hash = repeat('c', 64)$$, '토큰 해시는 바꿀 수 없음 (컬럼 권한)');
+insert into public.sms_messages (household_id, raw, raw_hash) values (:'a_household', '신한 승인 1,000원', repeat('d', 64));
+select pg_temp.expect_error(
+  format($$insert into public.sms_messages (household_id, raw, raw_hash) values (%L, '신한 승인 1,000원', %L)$$, :'a_household', repeat('d', 64)),
+  '같은 문자는 한 번만 (raw_hash)');
+reset role;
+set request.jwt.claim.sub to '00000000-0000-0000-0000-00000000000b';
+set role authenticated;
+select pg_temp.assert((select count(*) from public.inbound_tokens) = 0, 'B는 A 토큰을 못 봄');
+select pg_temp.assert((select count(*) from public.sms_messages) = 0, 'B는 A 받은 문자를 못 봄');
+select pg_temp.assert((select count(*) from public.inbound_tokens where token_hash = repeat('a', 64)) = 0, 'B는 해시로도 A 토큰을 못 찾음');
+reset role;
+
 -- 결제일에 연결된 소분류를 지우면 결제일은 남고 구분만 비워진다
 delete from public.categories where name = '통신비' and household_id = :'a_household';
 select pg_temp.assert(

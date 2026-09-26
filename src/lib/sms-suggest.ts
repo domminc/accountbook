@@ -5,8 +5,8 @@ export type SuggestContext = {
   /** 카드 관리에 등록한 카드 (지출방법을 연결한 것만 의미 있음) */
   cards: { name: string; issuer: string | null; paymentMethodId: string | null }[];
   paymentMethods: { id: string; name: string }[];
-  /** 가맹점(내용) → 가장 최근에 쓴 소분류·지출방법. 키는 normalizeMemo */
-  history: Map<string, { categoryId: string | null; paymentMethodId: string | null }>;
+  /** 가맹점(내용) → 가장 최근에 쓴 소분류·지출방법·태그. 키는 normalizeMemo */
+  history: Map<string, { categoryId: string | null; paymentMethodId: string | null; tagIds?: string[] }>;
   /** 이미 있는 거래 (날짜·금액이 같으면 중복 의심) */
   existing: { date: string; amount: number; memo: string | null }[];
 };
@@ -14,6 +14,7 @@ export type SuggestContext = {
 export type PasteRow = ParsedMessage & {
   categoryId: string | null;
   paymentMethodId: string | null;
+  tagIds: string[];
   /** 같은 날 같은 금액 거래의 내용 */
   duplicateOf: string | null;
 };
@@ -57,6 +58,7 @@ export function suggestRows(messages: ParsedMessage[], ctx: SuggestContext): Pas
       ...m,
       categoryId: past?.categoryId ?? null,
       paymentMethodId: suggestPaymentMethod(m.issuer, m.merchant, ctx),
+      tagIds: past?.tagIds ?? [],
       duplicateOf: dup ? (dup.memo ?? "내용 없음") : null,
     };
   });

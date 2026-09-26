@@ -29,9 +29,9 @@ describe("suggestRows", () => {
   });
 
   it("카드사로 못 찾으면 그 가맹점에서 지난번에 쓴 지출방법·소분류", () => {
-    const history = new Map([[normalizeMemo("스타 벅스"), { categoryId: "cat-cafe", paymentMethodId: "pm-cash" }]]);
+    const history = new Map([[normalizeMemo("스타 벅스"), { categoryId: "cat-cafe", paymentMethodId: "pm-cash", tagIds: ["tag-regret"] }]]);
     const [row] = suggestRows([msg("삼성카드 승인 5,000원 09/26 09:00 스타벅스")], ctx({ history }));
-    expect(row).toMatchObject({ categoryId: "cat-cafe", paymentMethodId: "pm-cash" });
+    expect(row).toMatchObject({ categoryId: "cat-cafe", paymentMethodId: "pm-cash", tagIds: ["tag-regret"] });
   });
 
   it("같은 날 같은 금액이 이미 있으면 중복 의심", () => {
