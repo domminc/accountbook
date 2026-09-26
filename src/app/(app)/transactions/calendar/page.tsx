@@ -8,10 +8,10 @@ import { listTransactions } from "@/lib/data/transactions";
 import { loadReserveOut } from "@/lib/data/plan";
 import { calendarTotals, dailyCells, monthWeeks } from "@/lib/summary";
 import { MonthNav } from "@/components/month-nav";
+import { WEEKDAYS_SUN, dayNumberClass, weekdayHeaderClass } from "@/components/calendar-day";
+import { holidayName } from "@/lib/holidays";
 import { cardClass } from "@/components/ui";
 import { ViewTabs } from "../view-tabs";
-
-const WEEKDAYS = ["월", "화", "수", "목", "금", "토", "일"];
 
 export default async function CalendarPage({ searchParams }: PageProps<"/transactions/calendar">) {
   const m = await requireHousehold();
@@ -58,31 +58,42 @@ export default async function CalendarPage({ searchParams }: PageProps<"/transac
       <table className={`w-full table-fixed text-center ${cardClass}`}>
         <thead>
           <tr>
-            {WEEKDAYS.map((d) => (
-              <th key={d} className="pt-2 pb-1 text-xs font-normal text-muted">
+            {WEEKDAYS_SUN.map((d, i) => (
+              <th key={d} className={`pt-2 pb-1 text-xs font-medium ${weekdayHeaderClass(i)}`}>
                 {d}
               </th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {monthWeeks(month).map((week, i) => (
+          {monthWeeks(month, "sun").map((week, i) => (
             <tr key={i} className="border-t border-border">
               {week.map((date, j) => {
                 if (!date) return <td key={j} />;
                 const c = cells.get(date)!;
                 const spend = c.fixed + c.variable + c.reserve;
                 const isSelected = date === selected;
+                const holiday = holidayName(date);
                 return (
                   <td key={j} className="p-0.5 align-top">
                     <Link
                       href={`/transactions/calendar?month=${month}&day=${date}`}
-                      aria-label={`${formatDateLabel(date)} 지출 ${formatWon(spend)}원${c.noSpend ? ", 무지출" : ""}`}
-                      className={`flex h-16 flex-col items-center rounded-lg pt-1 text-xs ${
-                        isSelected ? "bg-accent text-accent-foreground" : c.noSpend ? "bg-accent/15" : ""
+                      title={holiday ?? undefined}
+                      aria-label={`${formatDateLabel(date)}${holiday ? ` ${holiday}` : ""} 지출 ${formatWon(spend)}원${c.noSpend ? ", 무지출" : ""}`}
+                      className={`flex h-[4.5rem] flex-col items-center overflow-hidden rounded-xl pt-1 text-xs transition lg:h-24 ${
+                        isSelected ? "bg-accent text-accent-foreground" : c.noSpend ? "bg-accent/15" : "hover:bg-fill"
                       }`}
                     >
-                      <span className={`text-sm ${date === today && !isSelected ? "font-bold underline" : ""}`}>{Number(date.slice(8))}</span>
+                      <span
+                        className={`text-sm ${isSelected ? "" : dayNumberClass(date)} ${date === today && !isSelected ? "font-bold underline underline-offset-2" : ""}`}
+                      >
+                        {Number(date.slice(8))}
+                      </span>
+                      {holiday ? (
+                        <span className={`max-w-full truncate px-0.5 text-[10px] leading-tight ${isSelected ? "" : "text-danger"}`}>
+                          {holiday.startsWith("대체공휴일") ? "대체휴일" : holiday}
+                        </span>
+                      ) : null}
                       {c.income > 0 ? <span className={isSelected ? "" : "text-accent"}>+{formatCompact(c.income)}</span> : null}
                       {spend > 0 ? <span className="tabular-nums">{formatCompact(spend)}</span> : null}
                       {c.noSpend && spend === 0 && c.income === 0 ? (
@@ -102,7 +113,10 @@ export default async function CalendarPage({ searchParams }: PageProps<"/transac
       {selected && selectedCell ? (
         <section className={`p-4 ${cardClass}`}>
           <div className="flex items-baseline justify-between">
-            <h2 className="font-semibold">{formatDateLabel(selected)}</h2>
+            <h2 className="font-semibold">
+              {formatDateLabel(selected)}
+              {holidayName(selected) ? <span className="ml-2 text-sm font-medium text-danger">{holidayName(selected)}</span> : null}
+            </h2>
             <Link href={`/transactions/new?month=${month}`} className="text-sm text-muted">
               + 입력
             </Link>

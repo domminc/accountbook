@@ -27,6 +27,8 @@ import {
   type ShareItem,
 } from "@/lib/summary";
 import { Meter, meterState } from "@/components/meter";
+import { WEEKDAYS_SUN, dayNumberClass, weekdayHeaderClass } from "@/components/calendar-day";
+import { holidayName } from "@/lib/holidays";
 import { CardUsageList } from "@/components/card-usage";
 import { MonthNav } from "@/components/month-nav";
 import { cardClass, primaryButtonClass, smallButtonClass } from "@/components/ui";
@@ -407,8 +409,6 @@ function ShareCard({ items }: { items: ShareItem[] }) {
   );
 }
 
-const WEEKDAYS = ["월", "화", "수", "목", "금", "토", "일"];
-
 function NoSpendCard({ month, cells, today }: { month: string; cells: Map<string, DayCell>; today: string }) {
   const count = [...cells.values()].filter((c) => c.noSpend).length;
   return (
@@ -423,28 +423,34 @@ function NoSpendCard({ month, cells, today }: { month: string; cells: Map<string
       <table className="mt-3 w-full table-fixed text-center text-sm">
         <thead>
           <tr>
-            {WEEKDAYS.map((d) => (
-              <th key={d} className="pb-1 text-xs font-normal text-muted">
+            {WEEKDAYS_SUN.map((d, i) => (
+              <th key={d} className={`pb-1 text-xs font-medium ${weekdayHeaderClass(i)}`}>
                 {d}
               </th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {monthWeeks(month).map((week, i) => (
+          {monthWeeks(month, "sun").map((week, i) => (
             <tr key={i}>
               {week.map((date, j) => {
                 const cell = date ? cells.get(date) : null;
+                const holiday = date ? holidayName(date) : null;
                 return (
                   <td key={j} className="p-0.5">
                     {date ? (
                       <span
                         className={`flex h-9 items-center justify-center rounded-lg ${
-                          cell?.noSpend ? "bg-accent/20 font-semibold text-accent" : date > today ? "text-muted/60" : ""
+                          cell?.noSpend ? "bg-accent/20 font-semibold" : date > today ? "opacity-50" : ""
                         } ${date === today ? "ring-1 ring-foreground/40" : ""}`}
-                        aria-label={cell?.noSpend ? `${Number(date.slice(8))}일 무지출` : undefined}
+                        title={holiday ?? undefined}
+                        aria-label={
+                          cell?.noSpend || holiday
+                            ? `${Number(date.slice(8))}일${holiday ? ` ${holiday}` : ""}${cell?.noSpend ? " 무지출" : ""}`
+                            : undefined
+                        }
                       >
-                        {Number(date.slice(8))}
+                        <span className={dayNumberClass(date)}>{Number(date.slice(8))}</span>
                       </span>
                     ) : null}
                   </td>
