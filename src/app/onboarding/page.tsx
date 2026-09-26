@@ -15,6 +15,7 @@ export default async function OnboardingPage() {
           기본 카테고리(수입·저축·고정지출·식비 등)와 지출방법이 함께 만들어져요. 나중에 설정에서 바꿀 수 있어요.
         </p>
         <OnboardingForm defaultDisplayName="" />
+        <p className="mt-6 text-center text-sm text-muted">배우자에게 초대 링크를 받았다면, 새로 만들지 말고 그 링크를 열어 주세요.</p>
       </div>
     </main>
   );

@@ -6,6 +6,7 @@ import { db, pgErrorCode } from "@/lib/db";
 import { startSession } from "@/lib/auth";
 import { hashPassword } from "@/lib/password";
 import { firstError, loginIdSchema, passwordSchema } from "@/lib/validation";
+import { safeNextPath } from "@/lib/safe-next-path";
 import type { ActionState } from "@/lib/action-state";
 
 const schema = z
@@ -35,5 +36,7 @@ export async function signup(_prev: ActionState, formData: FormData): Promise<Ac
   }
 
   await startSession(userId);
-  redirect("/onboarding");
+  // 초대 링크에서 왔으면 초대 화면으로, 아니면 가계부 만들기로
+  const next = safeNextPath(String(formData.get("next") ?? ""));
+  redirect(next === "/" ? "/onboarding" : next);
 }

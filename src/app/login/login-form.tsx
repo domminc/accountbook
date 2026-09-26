@@ -37,7 +37,10 @@ export function LoginForm({ next }: { next: string }) {
       <button type="submit" disabled={pending} className={`mt-2 ${primaryButtonClass}`}>
         {pending ? "로그인 중…" : "로그인"}
       </button>
-      <Link href="/signup" className="text-center text-sm text-muted underline underline-offset-4">
+      <Link
+        href={next === "/" ? "/signup" : `/signup?next=${encodeURIComponent(next)}`}
+        className="text-center text-sm text-muted underline underline-offset-4"
+      >
         처음이신가요? 아이디 만들기
       </Link>
     </form>

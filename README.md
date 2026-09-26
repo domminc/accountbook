@@ -3,6 +3,7 @@
 부부가 함께 쓰는 웹 가계부. 구글 시트 가계부(디어나 가계부 템플릿)를 웹으로 옮긴다.
 
 - 기획서: [docs/PLANNING.md](docs/PLANNING.md)
+- 배포: [docs/DEPLOY.md](docs/DEPLOY.md) (Vercel + Supabase)
 - 스택: Next.js 16 (App Router) · TypeScript · Tailwind CSS 4 · PostgreSQL (Supabase 등)
 
 ## 처음 설정하기
@@ -18,7 +19,7 @@ PostgreSQL 15 이상이면 어디든 된다. Supabase를 쓰는 경우:
 
 `supabase/migrations/` 안의 SQL 파일을 이름 순서대로 실행한다. 둘 중 하나:
 - Supabase **SQL Editor**에 붙여넣고 실행
-- `psql "$DATABASE_URL" -f supabase/migrations/20260926000000_init.sql`
+- `for f in supabase/migrations/*.sql; do psql "$DATABASE_URL" -f "$f"; done`
 
 ### 3. 로컬 실행
 
@@ -42,10 +43,10 @@ npm run dev                  # http://localhost:3000
 | 내역 | 월별 거래 목록·달력, 검색·필터, 입력·수정·삭제, 지난달 고정지출 가져오기 |
 | 예비비 | 연도별 분류·입금·지출·잔액 |
 | 연간 | 수입·저축·지출·예비비 월별 상세표, 월평균 |
-| 설정 | 카테고리·지출방법·태그, 데이터 가져오기·내보내기 |
+| 설정 | 구성원·초대, 카테고리·지출방법·태그, 데이터 가져오기·내보내기 |
 | (홈에서) | 목표·예산 입력, 주간별 표 |
 
-> 배우자 초대(같은 가계부 함께 쓰기)는 5단계에서 추가한다. 지금은 아이디마다 따로 가계부가 만들어진다.
+> 배우자는 **설정 → 구성원·초대**에서 만든 초대 링크로 같은 가계부에 들어온다. 링크 없이 가입하면 따로 가계부가 만들어진다.
 
 ### 로그인 방식
 

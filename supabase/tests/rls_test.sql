@@ -41,6 +41,9 @@ set role authenticated;
 
 select pg_temp.expect_error($$insert into public.households (name) values ('직접')$$, '가구 직접 생성 차단');
 select pg_temp.expect_error($$select password_hash from public.users$$, '로그인 사용자 역할로 users 조회 차단');
+select pg_temp.expect_error(
+  format($$select public.seed_household_defaults(%L)$$, '00000000-0000-0000-0000-000000000000'),
+  '내부 함수 seed_household_defaults 직접 호출 차단');
 
 select public.create_household('  우리집  ', '민수') as a_household \gset
 select pg_temp.assert((select name from public.households) = '우리집', '가구 이름 trim');
@@ -118,6 +121,50 @@ select pg_temp.expect_error(
          :'b_household', :'a_mart'),
   'B 거래가 A 소분류 참조 차단');
 select pg_temp.assert((select count(*) from public.households) = 1, 'B는 자기 가구만 봄');
+reset role;
+
+-- ── 초대: 만들기·보기는 구성원만, 수락은 RPC로, 한 번만 ──
+insert into public.users (id, login_id, password_hash) values
+  ('00000000-0000-0000-0000-00000000000c', 'user_c', 'x');
+
+set request.jwt.claim.sub to '00000000-0000-0000-0000-00000000000a';
+set role authenticated;
+insert into public.household_invites (household_id, token_hash, created_by, expires_at)
+values (:'a_household', public.invite_token_hash('tok-valid'), '00000000-0000-0000-0000-00000000000a', now() + interval '7 days'),
+       (:'a_household', public.invite_token_hash('tok-expired'), '00000000-0000-0000-0000-00000000000a', now() - interval '1 minute');
+select pg_temp.assert((select count(*) from public.household_invites) = 2, 'A는 자기 초대를 봄');
+select pg_temp.expect_error($$update public.household_invites set used_at = now()$$, '초대 직접 수정 차단');
+reset role;
+
+-- B는 이미 자기 가계부가 있어 참여할 수 없고, A의 초대도 못 본다
+set request.jwt.claim.sub to '00000000-0000-0000-0000-00000000000b';
+set role authenticated;
+select pg_temp.assert((select count(*) from public.household_invites) = 0, 'B는 A 초대를 못 봄');
+select pg_temp.expect_error(
+  format($$insert into public.household_invites (household_id, token_hash, expires_at) values (%L, 'x', now())$$, :'a_household'),
+  'B가 A 가구 초대 생성 차단');
+select pg_temp.expect_error($$select public.accept_invite('tok-valid', 'B')$$, '이미 가구가 있는 사용자 참여 차단');
+reset role;
+
+-- C: 만료된 링크는 거절, 유효한 링크로 참여
+set request.jwt.claim.sub to '00000000-0000-0000-0000-00000000000c';
+set role authenticated;
+select pg_temp.assert((select status from public.invite_info('tok-valid')) = 'valid', '초대 정보 조회');
+select pg_temp.assert((select status from public.invite_info('tok-expired')) = 'expired', '만료 초대 표시');
+select pg_temp.assert((select count(*) from public.invite_info('nope')) = 0, '없는 초대');
+select pg_temp.expect_error($$select public.accept_invite('tok-expired', 'C')$$, '만료 초대 거절');
+select pg_temp.assert(public.accept_invite('tok-valid', ' 지영 ') = :'a_household', '초대 수락');
+select pg_temp.assert((select count(*) from public.transactions) = 1, 'C는 A 가구 거래를 봄');
+select pg_temp.assert((select role::text from public.members where user_id = '00000000-0000-0000-0000-00000000000c') = 'member', 'C는 member');
+select pg_temp.assert((select display_name from public.members where user_id = '00000000-0000-0000-0000-00000000000c') = '지영', '이름 trim');
+reset role;
+
+-- 쓴 초대는 다시 쓸 수 없다
+insert into public.users (id, login_id, password_hash) values ('00000000-0000-0000-0000-00000000000d', 'user_d', 'x');
+set request.jwt.claim.sub to '00000000-0000-0000-0000-00000000000d';
+set role authenticated;
+select pg_temp.assert((select status from public.invite_info('tok-valid')) = 'used', '사용한 초대 표시');
+select pg_temp.expect_error($$select public.accept_invite('tok-valid', 'D')$$, '사용한 초대 거절');
 reset role;
 
 -- ── 가구 삭제는 cascade로 전부 지운다 ──

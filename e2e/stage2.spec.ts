@@ -179,12 +179,14 @@ test("다른 가계부의 거래는 보이지 않는다", async ({ page, browser
   const res = await other.goto(href!);
   expect(res?.status()).toBe(404);
 
-  // 이미 쓰는 아이디로는 가입할 수 없다
-  await other.goto("/signup");
-  await other.locator("input[name=loginId]").fill(idA);
-  await other.locator("input[name=password]").fill(PASSWORD);
-  await other.locator("input[name=passwordConfirm]").fill(PASSWORD);
-  await other.getByRole("button", { name: "아이디 만들기" }).click();
-  await expect(other.locator("p[role=alert]")).toHaveText("이미 쓰고 있는 아이디예요.");
   await other.close();
+
+  // 이미 쓰는 아이디로는 가입할 수 없다 (로그인하지 않은 새 창)
+  const guest = await (await browser.newContext()).newPage();
+  await guest.goto("/signup");
+  await guest.locator("input[name=loginId]").fill(idA);
+  await guest.locator("input[name=password]").fill(PASSWORD);
+  await guest.locator("input[name=passwordConfirm]").fill(PASSWORD);
+  await guest.getByRole("button", { name: "아이디 만들기" }).click();
+  await expect(guest.locator("p[role=alert]")).toHaveText("이미 쓰고 있는 아이디예요.");
 });

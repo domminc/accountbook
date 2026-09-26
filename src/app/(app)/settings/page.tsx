@@ -2,6 +2,7 @@ import Link from "next/link";
 import { cardClass } from "@/components/ui";
 
 const LINKS = [
+  { href: "/settings/members", title: "구성원·초대", desc: "배우자 초대, 내 이름" },
   { href: "/settings/categories", title: "카테고리", desc: "대분류·소분류 추가, 이름 변경, 순서, 숨김" },
   { href: "/settings/payment-methods", title: "지출방법", desc: "체크카드, 현금 등" },
   { href: "/settings/tags", title: "태그", desc: "과소비, 돌발지출 등 거래에 붙이는 표시" },

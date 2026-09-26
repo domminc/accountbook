@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/session";
 
 // 로그인 없이 볼 수 있는 경로. /login/oauth 와 /auth/* 는 구글·카카오 로그인(보관 중)용.
-const PUBLIC_PATHS = ["/login", "/signup"];
+const PUBLIC_PATHS = ["/login", "/signup", "/manifest.webmanifest"];
 const PUBLIC_PREFIXES = ["/login/", "/auth/"];
 
 export function proxy(request: NextRequest) {
