@@ -25,6 +25,10 @@ export function ActionForm({
         <p role="alert" className={errorClassName}>
           {state.error}
         </p>
+      ) : state.message ? (
+        <p role="status" className="mt-1 text-sm text-accent">
+          {state.message}
+        </p>
       ) : null}
     </>
   );

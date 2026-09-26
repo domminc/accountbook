@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { withUser } from "@/lib/db";
 import { requireHousehold } from "@/lib/household";
-import { addMonths, formatDateLabel, formatMonthLabel, monthRange, parseMonth } from "@/lib/month";
+import { formatDateLabel, monthRange, parseMonth } from "@/lib/month";
 import { formatWon } from "@/lib/money";
 import { uuidSchema } from "@/lib/validation";
 import { loadCategoryGroups, loadMembers, loadSimpleItems } from "@/lib/data/settings";
 import { groupByDate, listTransactions, sumByKind, type TransactionFilters, type TransactionRow } from "@/lib/data/transactions";
 import { cardClass, smallButtonClass, smallInputClass } from "@/components/ui";
+import { MonthNav } from "@/components/month-nav";
+import { ViewTabs } from "./view-tabs";
 
 type Search = Record<string, string | string[] | undefined>;
 
@@ -47,14 +49,9 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
 
   return (
     <div>
-      <div className="flex items-center justify-between">
-        <Link href={`/transactions?month=${addMonths(month, -1)}`} aria-label="이전 달" className="px-3 py-2 text-lg">
-          ◀
-        </Link>
-        <h1 className="text-xl font-bold">{formatMonthLabel(month)}</h1>
-        <Link href={`/transactions?month=${addMonths(month, 1)}`} aria-label="다음 달" className="px-3 py-2 text-lg">
-          ▶
-        </Link>
+      <MonthNav month={month} basePath="/transactions" />
+      <div className="mt-3">
+        <ViewTabs month={month} active="list" />
       </div>
 
       <dl className={`mt-4 grid grid-cols-3 divide-x divide-border ${cardClass}`}>

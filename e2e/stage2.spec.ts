@@ -1,27 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
+import { PASSWORD, chip, kstMonth, signupAndCreateHousehold, uid } from "./helpers";
 
-// 한국 시간 기준 이번 달·지난달 (앱과 같은 기준)
-function kstMonth(offset = 0) {
-  const now = new Date(Date.now() + 9 * 3600_000);
-  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + offset, 1));
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
-}
-
-const uid = () => `e2e${Date.now().toString().slice(-9)}`;
-const PASSWORD = "test-password-1";
-
-async function signupAndCreateHousehold(page: Page, loginId: string, name: string) {
-  await page.goto("/signup");
-  await page.locator("input[name=loginId]").fill(loginId);
-  await page.locator("input[name=password]").fill(PASSWORD);
-  await page.locator("input[name=passwordConfirm]").fill(PASSWORD);
-  await page.getByRole("button", { name: "아이디 만들기" }).click();
-  await expect(page).toHaveURL(/\/onboarding$/);
-
-  await page.locator("input[name=displayName]").fill(name);
-  await page.getByRole("button", { name: "가계부 만들기" }).click();
-  await expect(page.getByRole("link", { name: "거래 입력" })).toBeVisible();
-}
 
 /** 설정 목록에서 이름으로 찾은 줄(details) */
 function row(page: Page, name: string) {
@@ -31,10 +10,6 @@ function row(page: Page, name: string) {
 /** 설정 목록에서 이름으로 줄을 펼친다 */
 async function openRow(page: Page, name: string) {
   await page.locator("summary").filter({ hasText: new RegExp(`^${name}`) }).first().click();
-}
-
-async function chip(page: Page, name: string) {
-  await page.getByRole("radio", { name, exact: true }).or(page.getByRole("checkbox", { name, exact: true })).first().click();
 }
 
 test.beforeEach(({ page }) => {

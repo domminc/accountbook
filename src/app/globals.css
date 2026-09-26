@@ -10,6 +10,7 @@
   --accent: #2f6f5e;
   --accent-foreground: #ffffff;
   --danger: #c2413b;
+  --warning: #a86a00;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -22,6 +23,7 @@
     --accent: #6fb8a2;
     --accent-foreground: #0f1f1a;
     --danger: #ef7a73;
+    --warning: #e0a940;
   }
 }
 
@@ -34,6 +36,7 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-danger: var(--danger);
+  --color-warning: var(--warning);
   --font-sans: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic",
     "Noto Sans KR", system-ui, sans-serif;
 }
