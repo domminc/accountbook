@@ -157,7 +157,7 @@ test("가입 → 설정 → 거래 입력·조회·수정·삭제 → 고정지�
   await page.locator("input[name=loginId]").fill(loginId.toUpperCase());
   await page.locator("input[name=password]").fill(PASSWORD);
   await page.getByRole("button", { name: "로그인" }).click();
-  await expect(page.getByRole("link", { name: "거래 입력" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "거래 입력", exact: true })).toBeVisible();
 });
 
 test("다른 가계부의 거래는 보이지 않는다", async ({ page, browser }) => {

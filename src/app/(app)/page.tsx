@@ -80,77 +80,82 @@ export default async function MonthSummaryPage({ searchParams }: PageProps<"/">)
         </p>
       </div>
 
-      <SummaryCard totals={totals} prev={prev} />
-      {uncategorized > 0 ? (
-        <Link href={`/transactions?month=${month}&uncategorized=1`} className="text-sm text-danger underline underline-offset-4">
-          분류가 필요한 거래 {uncategorized}건은 합계에 들어가지 않았어요
-        </Link>
-      ) : null}
-
-      <div className="flex flex-col gap-2">
-        <Link href={`/transactions/new?month=${month}`} className={`flex items-center justify-center ${primaryButtonClass}`}>
-          거래 입력
-        </Link>
-        <div className="grid grid-cols-3 gap-2">
-          <Link href={`/budget?month=${month}`} className={`flex items-center justify-center ${smallButtonClass}`}>
-            목표·예산
-          </Link>
-          <Link href={`/weekly?month=${month}`} className={`flex items-center justify-center ${smallButtonClass}`}>
-            주간별 표
-          </Link>
-          <Link href={`/transactions/calendar?month=${month}`} className={`flex items-center justify-center ${smallButtonClass}`}>
-            달력
-          </Link>
+      {/* PC: 요약(넓게)과 바로 가기를 한 줄에 */}
+      <div className="flex flex-col gap-5 lg:grid lg:grid-cols-3 lg:items-start">
+        <div className="flex flex-col gap-2 lg:col-span-2">
+          <SummaryCard totals={totals} prev={prev} />
+          {uncategorized > 0 ? (
+            <Link href={`/transactions?month=${month}&uncategorized=1`} className="text-sm text-danger underline underline-offset-4">
+              분류가 필요한 거래 {uncategorized}건은 합계에 들어가지 않았어요
+            </Link>
+          ) : null}
         </div>
-      </div>
 
-      <DueCard due={data.due} month={month} />
-      <OverspendCard alerts={alerts} month={month} />
-      <GoalsCard goals={data.goals} totals={totals} rows={data.rows} groups={data.groups} month={month} />
-      <BudgetCard rows={budgetRows(data.rows, data.groups, data.budgets)} month={month} />
-      <ShareCard items={spendingShare(data.rows, data.groups)} />
-      <NoSpendCard month={month} cells={cells} today={today} />
-
-      <div className="grid gap-5 sm:grid-cols-2">
-        <AmountList title="결제 수단별 지출" items={byPaymentMethod(data.rows, data.methods)} empty="지출방법을 고른 지출이 없어요." />
-        <AmountList title="태그별 금액" items={byTag(data.rows, data.tags)} empty="태그를 붙인 거래가 없어요." />
-      </div>
-
-      {cards.length > 0 ? (
-        <section className={`p-5 ${cardClass}`}>
-          <div className="flex items-baseline justify-between">
-            <h2 className="font-semibold">카드별 사용</h2>
-            <Link href={`/assets/cards?month=${month}`} className="text-sm text-muted">
-              카드 관리
+        <div className="flex flex-col gap-2">
+          <Link href={`/transactions/new?month=${month}`} className={`flex items-center justify-center ${primaryButtonClass}`}>
+            거래 입력
+          </Link>
+          <div className="grid grid-cols-3 gap-2">
+            <Link href={`/budget?month=${month}`} className={`flex items-center justify-center ${smallButtonClass}`}>
+              목표·예산
+            </Link>
+            <Link href={`/weekly?month=${month}`} className={`flex items-center justify-center ${smallButtonClass}`}>
+              주간별 표
+            </Link>
+            <Link href={`/transactions/calendar?month=${month}`} className={`flex items-center justify-center ${smallButtonClass}`}>
+              달력
             </Link>
           </div>
-          <div className="mt-3">
-            <CardUsageList items={cards} />
-          </div>
-        </section>
-      ) : null}
-
-      <section className={`p-5 ${cardClass}`}>
-        <div className="flex items-baseline justify-between">
-          <h2 className="font-semibold">이달의 이벤트</h2>
-          <Link href={`/budget?month=${month}`} className="text-sm text-muted">
-            편집
-          </Link>
         </div>
-        {data.events.length === 0 ? (
-          <p className="mt-2 text-sm text-muted">등록한 이벤트가 없어요.</p>
-        ) : (
-          <ul className="mt-2 divide-y divide-border">
-            {data.events.map((e) => (
-              <li key={e.id} className="flex gap-3 py-2 text-sm">
-                <span className="w-24 shrink-0 text-muted">{formatDateLabel(e.occurredOn)}</span>
-                <span className="min-w-0 flex-1">{e.content}</span>
-                {e.budget ? <span className="tabular-nums">{formatWon(e.budget)}</span> : null}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      </div>
+
+      {/* PC: 카드들을 두 단으로 */}
+      <div className="flex flex-col gap-5 lg:block lg:columns-2 lg:gap-5 lg:*:mb-5 lg:*:break-inside-avoid">
+        <DueCard due={data.due} month={month} />
+        <OverspendCard alerts={alerts} month={month} />
+        <GoalsCard goals={data.goals} totals={totals} rows={data.rows} groups={data.groups} month={month} />
+        <BudgetCard rows={budgetRows(data.rows, data.groups, data.budgets)} month={month} />
+        <ShareCard items={spendingShare(data.rows, data.groups)} />
+        <NoSpendCard month={month} cells={cells} today={today} />
+        <AmountList title="결제 수단별 지출" items={byPaymentMethod(data.rows, data.methods)} empty="지출방법을 고른 지출이 없어요." />
+        <AmountList title="태그별 금액" items={byTag(data.rows, data.tags)} empty="태그를 붙인 거래가 없어요." />
+
+        {cards.length > 0 ? (
+          <section className={`p-5 ${cardClass}`}>
+            <div className="flex items-baseline justify-between">
+              <h2 className="font-semibold">카드별 사용</h2>
+              <Link href={`/assets/cards?month=${month}`} className="text-sm text-muted">
+                카드 관리
+              </Link>
+            </div>
+            <div className="mt-3">
+              <CardUsageList items={cards} />
+            </div>
+          </section>
+        ) : null}
+
+        <section className={`p-5 ${cardClass}`}>
+          <div className="flex items-baseline justify-between">
+            <h2 className="font-semibold">이달의 이벤트</h2>
+            <Link href={`/budget?month=${month}`} className="text-sm text-muted">
+              편집
+            </Link>
+          </div>
+          {data.events.length === 0 ? (
+            <p className="mt-2 text-sm text-muted">등록한 이벤트가 없어요.</p>
+          ) : (
+            <ul className="mt-2 divide-y divide-border">
+              {data.events.map((e) => (
+                <li key={e.id} className="flex gap-3 py-2 text-sm">
+                  <span className="w-24 shrink-0 text-muted">{formatDateLabel(e.occurredOn)}</span>
+                  <span className="min-w-0 flex-1">{e.content}</span>
+                  {e.budget ? <span className="tabular-nums">{formatWon(e.budget)}</span> : null}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
     </div>
   );
 }
@@ -170,7 +175,7 @@ function SummaryCard({ totals, prev }: { totals: MonthTotals; prev: MonthTotals 
     <section className={`p-5 ${cardClass}`} aria-label="이달 요약">
       <p className="text-sm text-muted">남은 금액 (수입 − 지출)</p>
       <p className={`text-3xl font-bold break-all sm:text-4xl ${totals.remaining < 0 ? "text-danger" : ""}`}>{formatWon(totals.remaining)}원</p>
-      <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-border pt-4 [&_dd]:break-all [&>div]:min-w-0">
+      <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-border pt-4 sm:grid-cols-4 [&_dd]:break-all [&>div]:min-w-0">
         <div>
           <dt className="text-sm text-muted">총 수입</dt>
           <dd className="text-lg font-semibold">{formatWon(totals.income)}</dd>

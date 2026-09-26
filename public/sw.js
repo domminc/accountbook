@@ -5,6 +5,8 @@
 const PAGES = "ab-pages-v1";
 const STATIC = "ab-static-v1";
 const OFFLINE_PAGE = "/transactions/new";
+// 마지막으로 받아 둔 화면을 지운 때 (로그아웃·세션 만료). 그보다 먼저 시작한 받아 두기는 저장하지 않는다
+let clearedAt = 0;
 
 self.addEventListener("install", () => self.skipWaiting());
 
@@ -23,6 +25,7 @@ self.addEventListener("message", (event) => {
 
 /** 입력 화면과 그 화면이 쓰는 /_next/static 파일을 받아 둔다. 지난 배포의 파일은 지운다. */
 async function warm() {
+  const startedAt = Date.now();
   try {
     const res = await fetch(OFFLINE_PAGE, { credentials: "same-origin", cache: "no-store" });
     if (!res.ok || new URL(res.url).pathname !== OFFLINE_PAGE) return;
@@ -42,6 +45,8 @@ async function warm() {
       }
     }
     for (const req of await staticCache.keys()) if (!keep.has(req.url)) await staticCache.delete(req);
+    // 받는 사이에 로그아웃했으면 저장하지 않는다
+    if (clearedAt >= startedAt) return;
     await (await caches.open(PAGES)).put(OFFLINE_PAGE, res);
   } catch {
     // 연결이 없으면 다음 기회에
@@ -66,7 +71,10 @@ async function navigate(req, url) {
   try {
     const res = await fetch(req);
     const path = new URL(res.url || req.url).pathname;
-    if (path === "/login" || path === "/signup") await caches.delete(PAGES);
+    if (path === "/login" || path === "/signup") {
+      clearedAt = Date.now();
+      await caches.delete(PAGES);
+    }
     return res;
   } catch {
     const page = await caches.match(OFFLINE_PAGE, { cacheName: PAGES });
