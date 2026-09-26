@@ -135,10 +135,11 @@ const pad = (n: number) => String(n).padStart(2, "0");
  * 월요일 시작 달력의 주 목록. 1주차 = 1일이 들어 있는 주 (시트 K7:Q12).
  * 달 밖의 날짜는 null.
  */
-export function monthWeeks(month: string): (string | null)[][] {
+export function monthWeeks(month: string, weekStart: "mon" | "sun" = "mon"): (string | null)[][] {
   const [y, m] = month.split("-").map(Number);
   const days = daysInMonth(y, m);
-  const firstWeekday = (new Date(Date.UTC(y, m - 1, 1)).getUTCDay() + 6) % 7; // 월=0 … 일=6
+  const sunday0 = new Date(Date.UTC(y, m - 1, 1)).getUTCDay(); // 일=0 … 토=6
+  const firstWeekday = weekStart === "sun" ? sunday0 : (sunday0 + 6) % 7; // 월 시작이면 월=0 … 일=6
   const cells: (string | null)[] = [
     ...Array<null>(firstWeekday).fill(null),
     ...Array.from({ length: days }, (_, i) => `${month}-${pad(i + 1)}`),
