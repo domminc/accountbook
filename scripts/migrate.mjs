@@ -28,11 +28,20 @@ const MARKERS = {
 
 const url = process.env.DATABASE_URL;
 if (!url) {
-  console.error("migrate: DATABASE_URL 환경 변수가 없어요. Vercel → Settings → Environment Variables 에 넣어 주세요.");
-  process.exit(1);
+  // 배포는 계속한다: 사이트의 /api/health 에서 무엇이 빠졌는지 볼 수 있게
+  console.warn("migrate: 경고 — DATABASE_URL 환경 변수가 없어 DB 적용을 건너뜀. /api/health 에서 확인하세요.");
+  process.exit(0);
 }
 
-const sql = postgres(url, { prepare: false, max: 1, onnotice: () => {} });
+const sql = postgres(url, { prepare: false, max: 1, connect_timeout: 15, onnotice: () => {} });
+try {
+  await sql`select 1`;
+} catch (e) {
+  // 접속 자체가 안 되면(주소·비밀번호 오류 등) 배포는 계속하고 /api/health 에서 원인을 보게 한다
+  console.warn("migrate: 경고 — DB 에 접속하지 못해 적용을 건너뜀:", e instanceof Error ? e.message.replace(/\/\/[^@\s]*@/g, "//****@") : e);
+  await sql.end({ timeout: 1 }).catch(() => {});
+  process.exit(0);
+}
 try {
   await sql.unsafe(`
     create schema if not exists accountbook_meta;
