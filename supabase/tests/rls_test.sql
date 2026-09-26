@@ -216,6 +216,32 @@ select pg_temp.assert(
   '지출방법 삭제 시 카드는 남고 연결만 끊김');
 reset role;
 
+-- 과소비 한도: 소분류 또는 태그 하나, 같은 가구만, 항목당 하나, 소분류를 지우면 같이 지움
+select id as a_regret from public.tags where household_id = :'a_household' and name = '반성' \gset
+select id as b_regret from public.tags where household_id = :'b_household' and name = '반성' \gset
+select id as a_cafe from public.categories where household_id = :'a_household' and name = '카페' \gset
+set request.jwt.claim.sub to '00000000-0000-0000-0000-00000000000a';
+set role authenticated;
+insert into public.spending_limits (household_id, category_id, amount) values (:'a_household', :'a_cafe', 100000);
+insert into public.spending_limits (household_id, tag_id, amount) values (:'a_household', :'a_regret', 50000);
+select pg_temp.expect_error(
+  format($$insert into public.spending_limits (household_id, category_id, amount) values (%L, %L, 1)$$, :'a_household', :'a_cafe'),
+  '항목당 한도 하나');
+select pg_temp.expect_error(
+  format($$insert into public.spending_limits (household_id, category_id, tag_id, amount) values (%L, %L, %L, 1)$$, :'a_household', :'a_mart', :'a_regret'),
+  '소분류와 태그를 함께 지정 차단');
+select pg_temp.expect_error(
+  format($$insert into public.spending_limits (household_id, tag_id, amount) values (%L, %L, 1)$$, :'a_household', :'b_regret'),
+  'B 가구 태그 한도 차단 (복합 FK)');
+reset role;
+set request.jwt.claim.sub to '00000000-0000-0000-0000-00000000000b';
+set role authenticated;
+select pg_temp.assert((select count(*) from public.spending_limits) = 0, 'B는 A 한도를 못 봄');
+reset role;
+delete from public.categories where id = :'a_cafe';
+select pg_temp.assert(
+  (select count(*) from public.spending_limits where household_id = :'a_household') = 1, '소분류 삭제 시 그 한도도 삭제');
+
 -- 결제일에 연결된 소분류를 지우면 결제일은 남고 구분만 비워진다
 delete from public.categories where name = '통신비' and household_id = :'a_household';
 select pg_temp.assert(

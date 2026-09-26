@@ -6,7 +6,8 @@ import { formatWon } from "@/lib/money";
 import { formatDelta, formatPercent } from "@/lib/format";
 import { loadCategoryGroups, loadSimpleItems, type CategoryGroup } from "@/lib/data/settings";
 import { listTransactions } from "@/lib/data/transactions";
-import { loadBudgets, loadEvents, loadGoals, type GoalKind, type Goals } from "@/lib/data/plan";
+import { limitTargetNames, loadBudgets, loadEvents, loadGoals, loadSpendingLimits, type GoalKind, type Goals } from "@/lib/data/plan";
+import { overspendAlerts, type OverspendAlert } from "@/lib/overspend";
 import { loadDuePayments, type DuePayment } from "@/lib/data/payments";
 import { loadCardInfos } from "@/lib/data/finance";
 import {
@@ -38,7 +39,7 @@ export default async function MonthSummaryPage({ searchParams }: PageProps<"/">)
   const today = todayKST();
 
   const data = await withUser(m.userId, async (tx) => {
-    const [rows, prevRows, groups, methods, tags, budgets, goals, events, due, cards] = await Promise.all([
+    const [rows, prevRows, groups, methods, tags, budgets, goals, events, due, cards, pastRows, limits] = await Promise.all([
       listTransactions(tx, m.householdId, range),
       listTransactions(tx, m.householdId, monthRange(addMonths(month, -1))),
       loadCategoryGroups(tx, m.householdId),
@@ -50,8 +51,11 @@ export default async function MonthSummaryPage({ searchParams }: PageProps<"/">)
       // 결제 예정은 이번 달을 볼 때만
       month === currentMonthKST() ? loadDuePayments(tx, m.householdId, month, today) : Promise.resolve([]),
       loadCardInfos(tx, m.householdId),
+      // 과소비 알림: 지난 3개월 평균과 비교
+      listTransactions(tx, m.householdId, { start: monthRange(addMonths(month, -3)).start, end: monthRange(addMonths(month, -1)).end }),
+      loadSpendingLimits(tx, m.householdId),
     ]);
-    return { rows, prevRows, groups, methods, tags, budgets, goals, events, due, cards };
+    return { rows, prevRows, groups, methods, tags, budgets, goals, events, due, cards, pastRows, limits };
   });
 
   const totals = monthTotals(data.rows);
@@ -59,6 +63,13 @@ export default async function MonthSummaryPage({ searchParams }: PageProps<"/">)
   const cells = dailyCells(data.rows, [], month, today);
   const uncategorized = data.rows.filter((r) => !r.kind).length;
   const cards = cardUsage(data.cards, data.rows);
+  const alerts = overspendAlerts({
+    rows: data.rows,
+    pastRows: data.pastRows,
+    month,
+    limits: data.limits,
+    names: limitTargetNames(data.groups, data.tags),
+  });
 
   return (
     <div className="flex flex-col gap-5">
@@ -94,6 +105,7 @@ export default async function MonthSummaryPage({ searchParams }: PageProps<"/">)
       </div>
 
       <DueCard due={data.due} month={month} />
+      <OverspendCard alerts={alerts} month={month} />
       <GoalsCard goals={data.goals} totals={totals} rows={data.rows} groups={data.groups} month={month} />
       <BudgetCard rows={budgetRows(data.rows, data.groups, data.budgets)} month={month} />
       <ShareCard items={spendingShare(data.rows, data.groups)} />
@@ -487,6 +499,42 @@ function DueCard({ due, month }: { due: DuePayment[]; month: string }) {
         ))}
       </ul>
       {pending.length > 5 ? <p className="mt-1 text-xs text-muted">외 {pending.length - 5}건</p> : null}
+    </section>
+  );
+}
+
+function OverspendCard({ alerts, month }: { alerts: OverspendAlert[]; month: string }) {
+  if (alerts.length === 0) return null;
+  return (
+    <section className={`p-5 ${cardClass}`}>
+      <div className="flex items-baseline justify-between">
+        <h2 className="font-semibold">과소비 알림</h2>
+        <Link href={`/budget?month=${month}`} className="text-sm text-muted">
+          한도 설정
+        </Link>
+      </div>
+      <ul className="mt-2 divide-y divide-border">
+        {alerts.map((a) => (
+          <li key={`${a.type}:${a.id}`} className="py-2 text-sm">
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="min-w-0">
+                {a.name}
+                {a.kind === "over_limit" ? <span className="ml-1.5 text-xs font-semibold text-danger">▲ 한도 초과</span> : null}
+                {a.kind === "near_limit" ? <span className="ml-1.5 text-xs font-semibold text-warning">● 한도 80% 넘음</span> : null}
+                {a.kind === "above_average" ? <span className="ml-1.5 text-xs font-semibold text-warning">▲ 평소보다 많음</span> : null}
+              </span>
+              <span className="shrink-0 font-semibold tabular-nums">{formatWon(a.spent)}</span>
+            </div>
+            <p className="text-xs text-muted tabular-nums">
+              {a.limit !== undefined
+                ? a.spent > a.limit
+                  ? `한도 ${formatWon(a.limit)} · ${formatWon(a.spent - a.limit)} 초과`
+                  : `한도 ${formatWon(a.limit)} · ${formatWon(a.limit - a.spent)} 남음`
+                : `지난 3개월 평균 ${formatWon(a.average ?? 0)} · ${formatWon(a.spent - (a.average ?? 0))} 더 씀`}
+            </p>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

@@ -7,6 +7,7 @@ import { addMonths, isValidDate, isValidMonth } from "@/lib/month";
 import { MAX_AMOUNT } from "@/lib/money";
 import { periodOf, type GoalKind } from "@/lib/data/plan";
 import type { ActionState } from "@/lib/action-state";
+import { uuidSchema } from "@/lib/validation";
 
 const GOAL_KINDS: GoalKind[] = ["income", "saving", "expense"];
 
@@ -127,6 +128,40 @@ export async function deleteEvent(id: string): Promise<ActionState> {
   const m = await requireHousehold();
   try {
     await withUser(m.userId, (tx) => tx`delete from public.month_events where id = ${id} and household_id = ${m.householdId}`);
+  } catch (e) {
+    return { error: dbErrorMessage(e) };
+  }
+  revalidatePath("/", "layout");
+  return {};
+}
+
+/** 과소비 알림 한도 추가: target 은 "category:<id>" 또는 "tag:<id>" */
+export async function addSpendingLimit(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const m = await requireHousehold();
+  const [type, id] = String(formData.get("target") ?? "").split(":");
+  if ((type !== "category" && type !== "tag") || !uuidSchema.safeParse(id).success) return { error: "항목을 골라 주세요." };
+  const amount = readAmount(formData, "amount");
+  if (amount === undefined || amount === null || amount <= 0) return { error: "한도를 1원 ~ 1조 원 사이로 입력해 주세요." };
+  try {
+    await withUser(m.userId, (tx) =>
+      tx`insert into public.spending_limits ${tx({
+        household_id: m.householdId,
+        category_id: type === "category" ? id : null,
+        tag_id: type === "tag" ? id : null,
+        amount,
+      })}`,
+    );
+  } catch (e) {
+    return { error: dbErrorMessage(e) };
+  }
+  revalidatePath("/", "layout");
+  return { savedAt: Date.now() };
+}
+
+export async function deleteSpendingLimit(id: string): Promise<ActionState> {
+  const m = await requireHousehold();
+  try {
+    await withUser(m.userId, (tx) => tx`delete from public.spending_limits where id = ${id} and household_id = ${m.householdId}`);
   } catch (e) {
     return { error: dbErrorMessage(e) };
   }

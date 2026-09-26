@@ -3,14 +3,16 @@ import { withUser } from "@/lib/db";
 import { requireHousehold } from "@/lib/household";
 import { formatDateLabel, monthRange, parseMonth, todayKST } from "@/lib/month";
 import { formatWon } from "@/lib/money";
-import { loadCategoryGroups } from "@/lib/data/settings";
-import { loadBudgets, loadEvents, loadGoals, type GoalKind } from "@/lib/data/plan";
+import { loadCategoryGroups, loadSimpleItems } from "@/lib/data/settings";
+import { limitTargetNames, loadBudgets, loadEvents, loadGoals, loadSpendingLimits, type GoalKind } from "@/lib/data/plan";
+import { listTransactions } from "@/lib/data/transactions";
+import { spendByTarget } from "@/lib/overspend";
 import { ActionForm } from "@/components/action-form";
 import { AmountInput } from "@/components/amount-input";
 import { MonthNav } from "@/components/month-nav";
 import { SubmitButton } from "@/components/submit-button";
 import { cardClass, primaryButtonClass, smallButtonClass, smallInputClass } from "@/components/ui";
-import { addEvent, copyPrevPlan, deleteEvent, savePlan } from "./actions";
+import { addEvent, addSpendingLimit, copyPrevPlan, deleteEvent, deleteSpendingLimit, savePlan } from "./actions";
 
 const GOAL_LABEL: Record<GoalKind, string> = { income: "수입", saving: "저축", expense: "지출" };
 
@@ -20,15 +22,21 @@ export default async function BudgetPage({ searchParams }: PageProps<"/budget">)
   const month = parseMonth(Array.isArray(params.month) ? params.month[0] : params.month);
   const range = monthRange(month);
 
-  const { groups, budgets, goals, events } = await withUser(m.userId, async (tx) => {
-    const [groups, budgets, goals, events] = await Promise.all([
+  const { groups, budgets, goals, events, tags, limits, rows } = await withUser(m.userId, async (tx) => {
+    const [groups, budgets, goals, events, tags, limits, rows] = await Promise.all([
       loadCategoryGroups(tx, m.householdId),
       loadBudgets(tx, m.householdId, month),
       loadGoals(tx, m.householdId, month),
       loadEvents(tx, m.householdId, range),
+      loadSimpleItems(tx, m.householdId, "tags"),
+      loadSpendingLimits(tx, m.householdId),
+      listTransactions(tx, m.householdId, range),
     ]);
-    return { groups, budgets, goals, events };
+    return { groups, budgets, goals, events, tags, limits, rows };
   });
+  const targetNames = limitTargetNames(groups, tags);
+  const spent = spendByTarget(rows);
+  const limitedKeys = new Set(limits.map((l) => `${l.type}:${l.id}`));
   const budgetGroups = groups.filter(
     (g) => (g.kind === "fixed_expense" || g.kind === "variable_expense") && (!g.isHidden || budgets.has(g.id)),
   );
@@ -91,6 +99,70 @@ export default async function BudgetPage({ searchParams }: PageProps<"/budget">)
 
         <SubmitButton className={primaryButtonClass}>목표·예산 저장</SubmitButton>
       </ActionForm>
+
+      <section className={`mt-6 p-4 ${cardClass}`}>
+        <h2 className="font-semibold">과소비 알림 한도</h2>
+        <p className="mt-1 text-xs text-muted">
+          소분류나 태그에 매월 한도를 정하면 80%를 넘을 때와 초과했을 때 이달의 정리에서 알려줘요. 한도가 없는 항목은 지난 3개월
+          평균보다 많이 쓰면 알려줘요.
+        </p>
+        {limits.length > 0 ? (
+          <ul className="mt-3 divide-y divide-border">
+            {limits.map((l) => {
+              const name = targetNames.get(`${l.type}:${l.id}`) ?? "(지운 항목)";
+              const used = spent.get(`${l.type}:${l.id}`) ?? 0;
+              return (
+                <li key={l.limitId} className="flex items-center gap-3 py-2">
+                  <span className="min-w-0 flex-1 text-sm">
+                    {name}
+                    <span className="block text-xs text-muted tabular-nums">
+                      이 달 {formatWon(used)} / 한도 {formatWon(l.amount)}
+                    </span>
+                  </span>
+                  <ActionForm action={deleteSpendingLimit.bind(null, l.limitId)}>
+                    <SubmitButton className="px-2 text-sm text-danger" confirmMessage="이 한도를 지울까요?" aria-label={`${name} 한도 삭제`}>
+                      삭제
+                    </SubmitButton>
+                  </ActionForm>
+                </li>
+              );
+            })}
+          </ul>
+        ) : null}
+        <ActionForm action={addSpendingLimit} className="mt-3 grid grid-cols-2 gap-2" resetOnSuccess>
+          <select name="target" required defaultValue="" aria-label="한도 항목" className={`col-span-2 ${smallInputClass}`}>
+            <option value="" disabled>
+              소분류·태그 고르기
+            </option>
+            {groups
+              .filter((g) => (g.kind === "fixed_expense" || g.kind === "variable_expense") && !g.isHidden)
+              .map((g) => (
+                <optgroup key={g.id} label={g.name}>
+                  {g.categories
+                    .filter((c) => !c.isHidden && !limitedKeys.has(`category:${c.id}`))
+                    .map((c) => (
+                      <option key={c.id} value={`category:${c.id}`}>
+                        {c.name}
+                      </option>
+                    ))}
+                </optgroup>
+              ))}
+            {tags.some((t) => !t.isHidden && !limitedKeys.has(`tag:${t.id}`)) ? (
+              <optgroup label="태그">
+                {tags
+                  .filter((t) => !t.isHidden && !limitedKeys.has(`tag:${t.id}`))
+                  .map((t) => (
+                    <option key={t.id} value={`tag:${t.id}`}>
+                      #{t.name}
+                    </option>
+                  ))}
+              </optgroup>
+            ) : null}
+          </select>
+          <AmountInput name="amount" aria-label="월 한도" placeholder="월 한도" className={smallInputClass} />
+          <SubmitButton className={smallButtonClass}>한도 추가</SubmitButton>
+        </ActionForm>
+      </section>
 
       <section className={`mt-6 p-4 ${cardClass}`}>
         <h2 className="font-semibold">이달의 이벤트</h2>

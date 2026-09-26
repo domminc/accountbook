@@ -1,4 +1,6 @@
 import type { Tx } from "@/lib/db";
+import type { SpendingLimit } from "@/lib/overspend";
+import type { CategoryGroup, SimpleItem } from "@/lib/data/settings";
 
 export type GoalKind = "income" | "saving" | "expense";
 export type Goal = { amount: number; note: string | null };
@@ -46,4 +48,25 @@ export async function loadReserveOut(
     where household_id = ${householdId} and direction = 'out' and occurred_on between ${range.start} and ${range.end}
   `;
   return rows.map((r) => ({ occurredOn: r.occurred_on, amount: r.amount }));
+}
+
+export async function loadSpendingLimits(tx: Tx, householdId: string): Promise<(SpendingLimit & { limitId: string })[]> {
+  const rows = await tx<{ id: string; category_id: string | null; tag_id: string | null; amount: number }[]>`
+    select id, category_id, tag_id, amount from public.spending_limits
+    where household_id = ${householdId} order by created_at
+  `;
+  return rows.map((r) => ({
+    limitId: r.id,
+    type: r.category_id ? "category" : "tag",
+    id: (r.category_id ?? r.tag_id)!,
+    amount: r.amount,
+  }));
+}
+
+/** 과소비 알림에 보일 이름: "category:<id>" → "대분류 · 소분류", "tag:<id>" → "#태그" */
+export function limitTargetNames(groups: CategoryGroup[], tags: SimpleItem[]): Map<string, string> {
+  return new Map([
+    ...groups.flatMap((g) => g.categories.map((c) => [`category:${c.id}`, `${g.name} · ${c.name}`] as const)),
+    ...tags.map((t) => [`tag:${t.id}`, `#${t.name}`] as const),
+  ]);
 }
