@@ -66,6 +66,8 @@ export async function importSheet(_prev: ImportResult, formData: FormData): Prom
 
   try {
     const result = await withUser(m.userId, async (tx) => {
+      // 같은 가계부의 가져오기는 한 번에 하나씩 (버튼을 두 번 눌러도 두 번 들어가지 않게)
+      await tx`select pg_advisory_xact_lock(hashtext(${`import:${m.householdId}`}))`;
       const existing = await tx<{ id: string }[]>`
         select id from public.import_batches where household_id = ${m.householdId} and year = ${data.year}
       `;
