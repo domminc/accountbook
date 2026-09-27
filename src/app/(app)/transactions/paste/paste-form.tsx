@@ -7,7 +7,8 @@ import type { PasteRow } from "@/lib/sms-suggest";
 import { KIND_LABEL } from "@/lib/data/settings";
 import { inputClass, primaryButtonClass, secondaryButtonClass, smallInputClass } from "@/components/ui";
 import type { FormGroup, FormOption } from "../transaction-form";
-import { analyzePaste, dismissSms, savePasted, type InboxRow } from "./actions";
+import { PdfPasswordError, readStatementFile, STATEMENT_ACCEPT } from "@/lib/statement-file";
+import { analyzePaste, analyzeStatement, dismissSms, savePasted, type InboxRow } from "./actions";
 
 type Row = {
   /** 받은 문자는 문자 id, 붙여 넣은 것은 순번 (서버·브라우저에서 같은 값이어야 한다) */
@@ -58,6 +59,11 @@ export function PasteForm({
   const [text, setText] = useState("");
   const [rows, setRows] = useState<Row[] | null>(() => (inbox.length > 0 ? inbox.map((r) => toRow(r, r.messageId)) : null));
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [needPassword, setNeedPassword] = useState(false);
+  const [password, setPassword] = useState("");
+  const [bulkCategory, setBulkCategory] = useState("");
   const [pending, startTransition] = useTransition();
 
   const sortedGroups = [...groups].sort((a, b) => GROUP_ORDER.indexOf(a.kind) - GROUP_ORDER.indexOf(b.kind));
@@ -67,6 +73,7 @@ export function PasteForm({
 
   function analyze() {
     setError(null);
+    setNotice(null);
     startTransition(async () => {
       const r = await analyzePaste(text);
       if ("error" in r) {
@@ -75,6 +82,38 @@ export function PasteForm({
       }
       // 자동으로 받은 문자는 남기고, 붙여 넣은 것만 새로
       setRows((prev) => [...(prev ?? []).filter((x) => x.messageId), ...r.rows.map((x) => toRow(x, null))]);
+    });
+  }
+
+  /** 카드 이용내역·명세서 파일: 이 기기에서 글자로 바꾸고, 거래 후보는 서버에서 찾는다 */
+  function readFile(f: File, pw?: string) {
+    setError(null);
+    setNotice(null);
+    startTransition(async () => {
+      let input;
+      try {
+        input = await readStatementFile(f, pw);
+      } catch (e) {
+        if (e instanceof PdfPasswordError) setNeedPassword(true);
+        setError(e instanceof Error ? e.message : "파일을 읽지 못했어요.");
+        return;
+      }
+      setNeedPassword(false);
+      const r = await analyzeStatement(input);
+      if ("error" in r) {
+        setError(r.error);
+        return;
+      }
+      setRows((prev) => [...(prev ?? []).filter((x) => x.messageId), ...r.rows.map((x) => toRow(x, null))]);
+      setNotice(
+        [
+          `파일에서 거래 ${r.found}건을 찾았어요.`,
+          r.found > r.rows.length ? `한 번에 ${r.rows.length}건까지라 앞의 ${r.rows.length}건만 보여요.` : null,
+          r.cancelledPairs > 0 ? `결제 후 취소된 ${r.cancelledPairs}건은 뺐어요.` : null,
+        ]
+          .filter(Boolean)
+          .join(" "),
+      );
     });
   }
 
@@ -93,6 +132,7 @@ export function PasteForm({
   }
 
   const chosen = rows?.filter((r) => r.include) ?? [];
+  const noCategory = chosen.filter((r) => !r.categoryId);
 
   function save() {
     setError(null);
@@ -129,9 +169,60 @@ export function PasteForm({
         {pending && !rows ? "읽는 중…" : "문자 읽기"}
       </button>
 
+      <div className="rounded-2xl border border-dashed border-border bg-surface p-4">
+        <label className="block">
+          <span className="text-sm font-medium">카드 이용내역·명세서 파일</span>
+          <span className="mt-0.5 block text-xs text-muted">
+            카드사 홈페이지·앱에서 받은 엑셀(xlsx·xls), csv, pdf를 올리면 거래를 찾아 채워요. 파일은 이 기기에서만 읽고, 찾은 거래만 보내요.
+          </span>
+          <input
+            type="file"
+            accept={STATEMENT_ACCEPT}
+            disabled={pending}
+            onChange={(e) => {
+              const f = e.target.files?.[0] ?? null;
+              e.target.value = "";
+              setFile(f);
+              setNeedPassword(false);
+              setPassword("");
+              if (f) readFile(f);
+            }}
+            className="mt-2 block w-full text-sm file:mr-3 file:h-10 file:rounded-xl file:border-0 file:bg-fill file:px-3 file:text-sm file:font-medium"
+          />
+        </label>
+        {file ? <p className="mt-1 truncate text-xs text-muted">{pending ? `${file.name} 읽는 중…` : file.name}</p> : null}
+        {needPassword && file ? (
+          <form
+            className="mt-3 flex gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (password) readFile(file, password);
+            }}
+          >
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              aria-label="PDF 비밀번호"
+              placeholder="PDF 비밀번호 (예: 생년월일 6자리)"
+              autoComplete="off"
+              className={`min-w-0 flex-1 ${smallInputClass}`}
+            />
+            <button type="submit" disabled={pending || !password} className={`${secondaryButtonClass} h-10 shrink-0 px-4 text-sm`}>
+              열기
+            </button>
+          </form>
+        ) : null}
+      </div>
+
       {error ? (
         <p role="alert" className="text-sm text-danger">
           {error}
+        </p>
+      ) : null}
+      {notice ? (
+        <p role="status" className="text-sm text-muted">
+          {notice}
         </p>
       ) : null}
 
@@ -142,6 +233,40 @@ export function PasteForm({
             <p className="-mt-2 text-sm text-muted">
               자동으로 받은 문자 중 확인이 필요한 {rows.filter((r) => r.messageId).length}건이 포함돼 있어요.
             </p>
+          ) : null}
+          {noCategory.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-fill p-3 text-sm">
+              <label htmlFor="bulk-category" className="w-full sm:w-auto">소분류가 빈 {noCategory.length}건에 한꺼번에</label>
+              <select
+                id="bulk-category"
+                value={bulkCategory}
+                onChange={(e) => setBulkCategory(e.target.value)}
+                className={`w-auto min-w-0 flex-1 ${smallInputClass}`}
+              >
+                <option value="">소분류 고르기</option>
+                {sortedGroups.map((g) => (
+                  <optgroup key={g.id} label={`${g.name} (${KIND_LABEL[g.kind]})`}>
+                    {g.categories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+              <button
+                type="button"
+                disabled={!bulkCategory}
+                onClick={() => {
+                  const keys = new Set(noCategory.map((r) => r.key));
+                  setRows((prev) => prev?.map((r) => (keys.has(r.key) ? { ...r, categoryId: bulkCategory } : r)) ?? null);
+                  setBulkCategory("");
+                }}
+                className={`${secondaryButtonClass} h-10 shrink-0 px-4 text-sm`}
+              >
+                적용
+              </button>
+            </div>
           ) : null}
           <ul className="flex flex-col gap-3">
             {rows.map((r, i) => {
@@ -184,7 +309,7 @@ export function PasteForm({
                   </label>
 
                   {s.cancelled ? (
-                    <p className="mt-2 text-xs text-warning">취소 문자예요. 원래 거래를 내역에서 찾아 지워 주세요.</p>
+                    <p className="mt-2 text-xs text-warning">취소 문자예요. 원래 거래를 이미 입력했다면 내역에서 찾아 지워 주세요.</p>
                   ) : null}
                   {s.amount === null ? <p className="mt-2 text-xs text-warning">원화 금액을 찾지 못했어요. 금액을 넣어 주세요.</p> : null}
                   {s.dateGuessed ? <p className="mt-2 text-xs text-warning">날짜를 찾지 못해 오늘로 두었어요.</p> : null}

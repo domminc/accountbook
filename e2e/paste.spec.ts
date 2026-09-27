@@ -22,7 +22,7 @@ test("카드 문자 붙여넣기: 지출방법·소분류 추천, 취소·중복
   ].join("\n");
 
   await page.goto("/transactions/new");
-  await page.getByRole("link", { name: "카드 문자로 입력" }).click();
+  await page.getByRole("link", { name: "카드 문자·파일로 입력" }).click();
   await page.getByLabel("문자 내용").fill(text);
   await page.getByRole("button", { name: "문자 읽기" }).click();
   await expect(page.getByRole("heading", { name: "찾은 거래 3건" })).toBeVisible();

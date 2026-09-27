@@ -97,7 +97,7 @@ export async function processInbound(token: string, text: string, now = new Date
 
     const parts = [
       saved.length > 0 ? `가계부에 저장: ${saved.join(", ")}` : null,
-      pending > 0 ? `확인 필요 ${pending}건 (가계부 > 거래 입력 > 카드 문자로 입력)` : null,
+      pending > 0 ? `확인 필요 ${pending}건 (가계부 > 거래 입력 > 카드 문자·파일로 입력)` : null,
       duplicates > 0 ? `이미 받은 문자 ${duplicates}건` : null,
       ignored > 0 ? `거래 문자가 아님 ${ignored}건` : null,
     ].filter(Boolean);

@@ -36,7 +36,7 @@ const DESKTOP: { title?: string; items: Item[] }[] = [
       { href: "/", label: "이달의 정리", icon: House, match: (p) => p === "/" },
       { href: "/transactions", label: "거래 내역", icon: ReceiptText, match: (p) => p === "/transactions" || /^\/transactions\/[0-9a-f-]{36}$/.test(p) },
       { href: "/transactions/calendar", label: "달력", icon: CalendarDays, match: (p) => p.startsWith("/transactions/calendar") },
-      { href: "/transactions/paste", label: "카드 문자로 입력", icon: MessageSquareText, match: (p) => p.startsWith("/transactions/paste") },
+      { href: "/transactions/paste", label: "카드 문자·파일 입력", icon: MessageSquareText, match: (p) => p.startsWith("/transactions/paste") },
       { href: "/budget", label: "목표·예산", icon: Target, match: (p) => p.startsWith("/budget") },
       { href: "/weekly", label: "주간별 표", icon: Table2, match: (p) => p.startsWith("/weekly") },
     ],
