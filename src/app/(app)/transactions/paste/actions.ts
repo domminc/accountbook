@@ -9,7 +9,7 @@ import { requireHousehold } from "@/lib/household";
 import { isValidDate, todayKST } from "@/lib/month";
 import { MAX_AMOUNT } from "@/lib/money";
 import { parseMessage, parseMessages } from "@/lib/sms";
-import { parseStatement } from "@/lib/statement";
+import { isLedgerSheet, parseStatement } from "@/lib/statement";
 import type { PasteRow } from "@/lib/sms-suggest";
 import { suggestForMessages } from "@/lib/data/paste";
 import { firstError } from "@/lib/validation";
@@ -49,6 +49,9 @@ export type StatementResult = { rows: PasteRow[]; found: number; cancelledPairs:
 export async function analyzeStatement(input: z.input<typeof statementSchema>): Promise<StatementResult> {
   const parsed = statementSchema.safeParse(input);
   if (!parsed.success) return { error: firstError(parsed.error) };
+  if (isLedgerSheet(parsed.data)) {
+    return { error: "가계부 시트 파일이에요. 시트는 설정 → 데이터 가져오기·내보내기에서 올려 주세요. (여기서는 카드사 이용내역·명세서만 읽어요)" };
+  }
   const m = await requireHousehold();
   const { messages, cancelledPairs } = parseStatement(parsed.data, todayKST());
   if (messages.length === 0) {
@@ -85,8 +88,8 @@ const rowsSchema = z.array(rowSchema).min(1, "저장할 거래를 골라 주세�
 
 export type PasteSaveRow = z.input<typeof rowSchema>;
 
-/** 고른 후보를 한 번에 저장하고 내역으로 이동 */
-export async function savePasted(rows: PasteSaveRow[]): Promise<{ error: string }> {
+/** 고른 후보를 한 번에 저장하고 내역으로 이동. 한 번에 저장한 것은 묶음으로 남겨 되돌릴 수 있게 한다 */
+export async function savePasted(rows: PasteSaveRow[], meta: { fileName?: string | null } = {}): Promise<{ error: string }> {
   const parsed = rowsSchema.safeParse(rows);
   if (!parsed.success) {
     const issue = parsed.error.issues[0];
@@ -106,6 +109,12 @@ export async function savePasted(rows: PasteSaveRow[]): Promise<{ error: string 
       `;
       const kindOf = new Map(cats.map((c) => [c.id, txKindOf(c.kind)]));
       if (kindOf.size !== ids.length) throw new UserError("소분류를 다시 골라 주세요.");
+      const fileName = typeof meta.fileName === "string" && meta.fileName.trim() ? meta.fileName.trim().slice(0, 300) : null;
+      const [batch] = await tx<{ id: string }[]>`
+        insert into public.entry_batches (household_id, source, file_name, created_by)
+        values (${m.householdId}, ${fileName ? "file" : "text"}, ${fileName}, ${m.userId})
+        returning id
+      `;
       // id를 미리 정해 두고 넣는다 (태그·문자 연결에 쓴다)
       const inserted = list.map(() => ({ id: randomUUID() }));
       await tx`insert into public.transactions ${tx(
@@ -119,6 +128,7 @@ export async function savePasted(rows: PasteSaveRow[]): Promise<{ error: string 
           payment_method_id: kindOf.get(r.categoryId) === "expense" ? r.paymentMethodId : null,
           memo: r.memo,
           created_by: m.userId,
+          entry_batch_id: batch.id,
         })),
       )}`;
       const tags = list.flatMap((r, i) =>
@@ -174,4 +184,72 @@ export async function dismissSms(ids: string[]): Promise<{ error?: string }> {
   }
   revalidatePath("/transactions/paste");
   return {};
+}
+
+export type EntryBatch = {
+  id: string;
+  source: "file" | "text" | "earlier";
+  fileName: string | null;
+  createdAt: string;
+  createdBy: string | null;
+  count: number;
+  total: number;
+  from: string;
+  to: string;
+};
+
+/** 최근에 한꺼번에 저장한 묶음 (거래가 남아 있는 것만) */
+export async function loadEntryBatches(): Promise<EntryBatch[]> {
+  const m = await requireHousehold();
+  return withUser(m.userId, async (tx) => {
+    const rows = await tx<
+      { id: string; source: EntryBatch["source"]; file_name: string | null; created_at: Date; created_by: string | null; count: number; total: number; from: string; to: string }[]
+    >`
+      select b.id, b.source, b.file_name, b.created_at, mem.display_name as created_by,
+        count(t.id)::int as count, sum(t.amount)::bigint as total, min(t.occurred_on) as from, max(t.occurred_on) as to
+      from public.entry_batches b
+      join public.transactions t on t.entry_batch_id = b.id
+      left join public.members mem on mem.household_id = b.household_id and mem.user_id = b.created_by
+      where b.household_id = ${m.householdId}
+      group by b.id, mem.display_name
+      order by b.created_at desc
+      limit 10
+    `;
+    return rows.map((r) => ({
+      id: r.id,
+      source: r.source,
+      fileName: r.file_name,
+      createdAt: r.created_at.toISOString(),
+      createdBy: r.created_by,
+      count: r.count,
+      total: Number(r.total),
+      from: r.from,
+      to: r.to,
+    }));
+  });
+}
+
+/** 한꺼번에 저장한 묶음을 되돌린다: 그때 넣은 거래를 모두 지우고, 자동으로 받은 문자는 다시 "확인 필요"로 */
+export async function undoEntryBatch(id: string): Promise<{ error?: string; removed?: number }> {
+  if (!z.uuid().safeParse(id).success) return { error: "입력값을 확인해 주세요." };
+  const m = await requireHousehold();
+  try {
+    const removed = await withUser(m.userId, async (tx) => {
+      await tx`
+        update public.sms_messages set status = 'pending', transaction_id = null
+        where household_id = ${m.householdId}
+          and transaction_id in (select t.id from public.transactions t where t.household_id = ${m.householdId} and t.entry_batch_id = ${id})
+      `;
+      const [{ n }] = await tx<{ n: number }[]>`
+        select count(*)::int as n from public.transactions where household_id = ${m.householdId} and entry_batch_id = ${id}
+      `;
+      const del = await tx`delete from public.entry_batches where household_id = ${m.householdId} and id = ${id}`;
+      if (del.count === 0) throw new UserError("이미 되돌렸거나 없는 묶음이에요.");
+      return n;
+    });
+    revalidatePath("/", "layout");
+    return { removed };
+  } catch (e) {
+    return { error: e instanceof UserError ? e.message : dbErrorMessage(e) };
+  }
 }

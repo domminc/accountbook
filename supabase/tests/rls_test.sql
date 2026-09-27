@@ -287,6 +287,38 @@ select pg_temp.assert((select count(*) from public.sms_messages) = 0, 'B는 A �
 select pg_temp.assert((select count(*) from public.inbound_tokens where token_hash = repeat('a', 64)) = 0, 'B는 해시로도 A 토큰을 못 찾음');
 reset role;
 
+-- 한꺼번에 저장한 묶음: 구성원만 보고, 다른 가구 거래는 못 묶고, 묶음을 지우면(되돌리기) 그 묶음 거래만 지움
+set request.jwt.claim.sub to '00000000-0000-0000-0000-00000000000a';
+set role authenticated;
+insert into public.entry_batches (household_id, source, file_name, created_by)
+values (:'a_household', 'file', '신한카드.xls', '00000000-0000-0000-0000-00000000000a') returning id as a_batch \gset
+insert into public.transactions (household_id, occurred_on, amount, category_id, memo, entry_batch_id) values
+  (:'a_household', '2026-03-01', 1000, :'a_mart', '묶음 안 1', :'a_batch'),
+  (:'a_household', '2026-03-02', 2000, :'a_mart', '묶음 안 2', :'a_batch'),
+  (:'a_household', '2026-03-02', 2000, :'a_mart', '묶음 밖', null);
+select pg_temp.expect_error(
+  format($$update public.entry_batches set file_name = '바꿈' where id = %L$$, :'a_batch'), '묶음은 고칠 수 없음 (삭제만)');
+select pg_temp.expect_error(
+  format($$insert into public.entry_batches (household_id, source) values (%L, 'file')$$, :'b_household'), 'B 가구에 묶음 생성 차단');
+select pg_temp.expect_error(
+  format($$insert into public.entry_batches (household_id, source) values (%L, 'etc')$$, :'a_household'), '묶음 종류 제한');
+reset role;
+set request.jwt.claim.sub to '00000000-0000-0000-0000-00000000000b';
+set role authenticated;
+select pg_temp.assert((select count(*) from public.entry_batches) = 0, 'B는 A 묶음을 못 봄');
+select pg_temp.expect_error(
+  format($$insert into public.transactions (household_id, occurred_on, amount, entry_batch_id) values (%L, '2026-03-01', 1, %L)$$, :'b_household', :'a_batch'),
+  'B 거래를 A 묶음에 연결 차단 (복합 FK)');
+delete from public.entry_batches where id = :'a_batch';
+reset role;
+select pg_temp.assert((select count(*) from public.entry_batches where id = :'a_batch') = 1, 'B는 A 묶음을 못 지움');
+set request.jwt.claim.sub to '00000000-0000-0000-0000-00000000000a';
+set role authenticated;
+delete from public.entry_batches where id = :'a_batch';
+select pg_temp.assert((select count(*) from public.transactions where memo like '묶음 안%') = 0, '묶음을 지우면 그 거래도 지움');
+select pg_temp.assert((select count(*) from public.transactions where memo = '묶음 밖') = 1, '묶음 밖 거래는 남음');
+reset role;
+
 -- 결제일에 연결된 소분류를 지우면 결제일은 남고 구분만 비워진다
 delete from public.categories where name = '통신비' and household_id = :'a_household';
 select pg_temp.assert(

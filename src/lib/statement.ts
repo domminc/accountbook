@@ -197,6 +197,11 @@ function issuerOfFile(input: StatementInput, today: string): string | null {
   return findIssuer(head.join("\n"));
 }
 
+/** 이 앱으로 가져오는 가계부 시트(월 시트의 "이달의 고정지출 내역" 표)를 카드 파일로 잘못 올렸는지 */
+export function isLedgerSheet(input: StatementInput): boolean {
+  return (input.rows ?? []).some((r) => r.some((c) => /이달의\s*(고정지출|수입\s*저축\s*지출)\s*내역/.test(c)));
+}
+
 const merchantKey = (s: string) => s.replace(/승인취소|취소|\s+/g, "").toLowerCase();
 
 /**
