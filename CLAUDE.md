@@ -7,3 +7,4 @@
 - DB 접근은 `src/lib/db.ts` 의 `withUser()` 로만 한다 (RLS 적용). `db()` 직접 사용은 로그인·가입처럼 사용자가 없을 때만.
 - DB 변경은 supabase/migrations 에 새 파일로 추가하고, RLS·제약은 supabase/tests/rls_test.sql 에 테스트를 더한다.
 - 사용자 시트 원본(개인 금융 데이터)은 커밋하지 않는다.
+- 운영 주소는 https://www.homesell.co.kr (Vercel 프로젝트 accountbook). 네임서버는 Cloudflare, DNS 는 Cloudflare 에서만 관리한다 (docs/DEPLOY.md "내 도메인 연결"). 사용자가 요청하지 않으면 네임서버·DNS·Vercel 도메인 설정을 바꾸거나 바꾸라고 안내하지 않는다.
