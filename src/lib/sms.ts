@@ -91,7 +91,7 @@ export function parseMessage(raw: string, today: string): ParsedMessage | null {
 }
 
 /** 카드사: 글 앞쪽에 먼저 나오는 이름 (가맹점 이름에 든 "하나로마트" 등에 속지 않게) */
-function findIssuer(text: string): string | null {
+export function findIssuer(text: string): string | null {
   let best: { name: string; index: number } | null = null;
   for (const i of ISSUERS) {
     const m = i.pattern.exec(text);
@@ -127,7 +127,7 @@ function findMerchant(rest: string): string {
 }
 
 /** 문자에는 연도가 없다: 오늘보다 뒤 날짜면 작년 문자로 본다 (1월에 받은 12월 문자) */
-function inferYear(month: number, day: number, today: string): string {
+export function inferYear(month: number, day: number, today: string): string {
   const y = Number(today.slice(0, 4));
   const mmdd = `${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
   const year = mmdd > today.slice(5) ? y - 1 : y;

@@ -31,7 +31,7 @@ export default async function SmsSettingsPage() {
         <h1 className="mt-2 text-xl font-bold">문자 자동 입력</h1>
         <p className="mt-1 text-sm text-muted">
           휴대폰이 카드 승인 문자를 받으면 자동으로 가계부에 보내요. 같은 가맹점에 전에 입력한 적이 있으면 그때의 소분류·태그로 바로
-          저장하고, 처음 보는 가맹점이나 취소·중복 의심 문자는 <Link href="/transactions/paste" className="underline underline-offset-4">카드 문자로 입력</Link>
+          저장하고, 처음 보는 가맹점이나 취소·중복 의심 문자는 <Link href="/transactions/paste" className="underline underline-offset-4">카드 문자·파일로 입력</Link>
           에 모아 두었다가 확인하게 해요. 지출방법은 카드 관리에서 연결한 카드로 정해요.
         </p>
       </div>

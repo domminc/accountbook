@@ -55,7 +55,7 @@ export default async function NewTransactionPage({ searchParams }: PageProps<"/t
         <h1 className="text-xl font-bold">{fromId ? "복제해서 입력" : "거래 입력"}</h1>
         {fromId ? null : (
           <Link href="/transactions/paste" className="text-sm text-accent underline underline-offset-4">
-            카드 문자로 입력
+            카드 문자·파일로 입력
           </Link>
         )}
       </div>

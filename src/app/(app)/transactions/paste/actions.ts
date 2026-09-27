@@ -9,6 +9,7 @@ import { requireHousehold } from "@/lib/household";
 import { isValidDate, todayKST } from "@/lib/month";
 import { MAX_AMOUNT } from "@/lib/money";
 import { parseMessage, parseMessages } from "@/lib/sms";
+import { parseStatement } from "@/lib/statement";
 import type { PasteRow } from "@/lib/sms-suggest";
 import { suggestForMessages } from "@/lib/data/paste";
 import { firstError } from "@/lib/validation";
@@ -16,6 +17,8 @@ import { txKindOf, type CategoryKind } from "@/lib/data/settings";
 
 const MAX_TEXT = 20_000;
 const MAX_ROWS = 100;
+/** 카드 명세서 파일은 한 달치가 100건을 넘기도 한다 */
+const MAX_FILE_ROWS = 500;
 
 /** 붙여넣은 문자를 읽어 거래 후보로. 지출방법·소분류는 카드 연결과 지난 입력으로 채운다. */
 export async function analyzePaste(text: string): Promise<{ rows: PasteRow[] } | { error: string }> {
@@ -27,6 +30,38 @@ export async function analyzePaste(text: string): Promise<{ rows: PasteRow[] } |
 
   try {
     return { rows: await withUser(m.userId, (tx) => suggestForMessages(tx, m.householdId, messages)) };
+  } catch (e) {
+    return { error: dbErrorMessage(e) };
+  }
+}
+
+const statementSchema = z
+  .object({
+    rows: z.array(z.array(z.string().max(1000)).max(60)).max(5000).optional(),
+    lines: z.array(z.string().max(2000)).max(5000).optional(),
+    fileName: z.string().max(300).optional(),
+  })
+  .refine((v) => (v.rows?.length ?? 0) + (v.lines?.length ?? 0) > 0, "파일에서 글자를 찾지 못했어요.");
+
+export type StatementResult = { rows: PasteRow[]; found: number; cancelledPairs: number } | { error: string };
+
+/** 카드 이용내역·명세서 파일(브라우저에서 글자로 바꾼 것)을 읽어 거래 후보로 */
+export async function analyzeStatement(input: z.input<typeof statementSchema>): Promise<StatementResult> {
+  const parsed = statementSchema.safeParse(input);
+  if (!parsed.success) return { error: firstError(parsed.error) };
+  const m = await requireHousehold();
+  const { messages, cancelledPairs } = parseStatement(parsed.data, todayKST());
+  if (messages.length === 0) {
+    return {
+      error:
+        cancelledPairs > 0
+          ? "파일의 거래가 모두 취소된 거래예요."
+          : "파일에서 거래(날짜·금액)를 찾지 못했어요. 카드사 홈페이지·앱의 이용내역을 엑셀(xls·xlsx)이나 csv로 받아 올려 주세요.",
+    };
+  }
+  try {
+    const rows = await withUser(m.userId, (tx) => suggestForMessages(tx, m.householdId, messages.slice(0, MAX_FILE_ROWS)));
+    return { rows, found: messages.length, cancelledPairs };
   } catch (e) {
     return { error: dbErrorMessage(e) };
   }
@@ -46,7 +81,7 @@ const rowSchema = z.object({
   /** 자동으로 받은 문자에서 온 것이면 그 문자 id (저장하면 확인 끝) */
   messageId: z.uuid().nullable().default(null),
 });
-const rowsSchema = z.array(rowSchema).min(1, "저장할 거래를 골라 주세요.").max(MAX_ROWS);
+const rowsSchema = z.array(rowSchema).min(1, "저장할 거래를 골라 주세요.").max(MAX_FILE_ROWS, `한 번에 ${MAX_FILE_ROWS}건까지 저장할 수 있어요.`);
 
 export type PasteSaveRow = z.input<typeof rowSchema>;
 
