@@ -22,6 +22,14 @@ export default function DataPage() {
       </section>
 
       <section className={`p-4 ${cardClass}`}>
+        <h2 className="font-semibold">중복 거래 정리</h2>
+        <p className="mt-1 text-sm text-muted">같은 달에 소분류·금액·내용이 같은 거래를 찾아, 어디서 들어왔는지 보고 골라 지워요.</p>
+        <Link href="/settings/duplicates" className={`mt-3 flex items-center justify-center ${secondaryButtonClass}`}>
+          중복 거래 찾기
+        </Link>
+      </section>
+
+      <section className={`p-4 ${cardClass}`}>
         <h2 className="font-semibold">내보내기 (CSV)</h2>
         <p className="mt-1 text-sm text-muted">엑셀·구글 시트에서 열 수 있어요.</p>
         <div className="mt-3 flex flex-col gap-2 sm:flex-row">
