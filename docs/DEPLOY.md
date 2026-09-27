@@ -36,18 +36,20 @@
 
 ### 내 도메인 연결 (지금: `https://www.homesell.co.kr`)
 
-1. Vercel 프로젝트 **Settings → Domains → Add**에 도메인(`homesell.co.kr`)을 넣는다. www를 대표 주소로 두고 `homesell.co.kr`은 www로 넘기는 기본 설정을 그대로 쓴다.
-2. 도메인을 산 곳(homesell.co.kr은 예스닉)의 DNS 관리에 Vercel이 **View DNS configuration**에서 알려 주는 기록을 넣는다. 네임서버는 예스닉 것을 그대로 둔다.
+지금 설정 (바꾸지 말 것):
 
-   | 호스트 | 종류 | 값 |
-   |---|---|---|
-   | `www` | CNAME | Vercel이 알려 주는 값 (예: `….vercel-dns-017.com`) |
-   | (비움, `@`) | A | Vercel이 알려 주는 IP (예: `216.198.79.1`) |
+| 곳 | 설정 |
+|---|---|
+| 예스닉 (도메인 등록) | 네임서버 `michael.ns.cloudflare.com`, `raquel.ns.cloudflare.com` |
+| Cloudflare (DNS) | `www` CNAME → Vercel이 알려 준 `….vercel-dns-017.com` / `homesell.co.kr`은 Cloudflare를 거쳐 Vercel로 |
+| Vercel 프로젝트 Domains | `www.homesell.co.kr` = Production, `homesell.co.kr` → www로 308 |
 
-   > 네임서버를 `ns1/ns2.vercel-dns.com`으로 바꾸는 방법도 있지만, homesell.co.kr에서는 Vercel 쪽 DNS가 몇 시간 동안 켜지지 않아 위 방법으로 바꿨다.
-3. 몇 분 뒤 Domains 화면이 "Valid Configuration"으로 바뀌고 HTTPS 인증서가 자동으로 붙는다. `https://<도메인>/api/health`로 확인한다.
-4. 로그인은 주소마다 따로라 새 주소에서 한 번 다시 로그인한다. `*.vercel.app` 주소도 계속 열린다.
-5. 문자 자동 입력을 쓰고 있으면 단축어·자동화 앱의 주소를 새 주소의 `/api/sms`로 바꾼다 (옛 주소도 동작한다).
+- `homesell.co.kr`로 들어오면 `https://www.homesell.co.kr/`로 넘어간다. 대표 주소는 www.
+- DNS 기록은 **Cloudflare 대시보드**에서만 고친다. 예스닉 DNS 관리나 Vercel DNS에는 기록을 넣지 않는다 (네임서버가 Cloudflare라 효과가 없다).
+- 네임서버를 `ns1/ns2.vercel-dns.com`으로 바꾸는 방법은 이 도메인에서 Vercel DNS가 몇 시간 동안 켜지지 않아 쓰지 않았다.
+- 확인: `https://www.homesell.co.kr/api/health`가 `"상태": "정상"`.
+- 로그인은 주소마다 따로라 새 주소에서 한 번 다시 로그인한다. `accountbook-woad.vercel.app`도 계속 열린다.
+- 문자 자동 입력 단축어·자동화 앱 주소는 `https://www.homesell.co.kr/api/sms` (옛 주소도 동작).
 
 ## 3. 처음 쓰기
 
