@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { currentMonthKST } from "@/lib/month";
+import { YearSelect } from "./period-select";
 
 export function YearNav({ year, basePath, title }: { year: number; basePath: string; title?: string }) {
   return (
@@ -8,7 +10,8 @@ export function YearNav({ year, basePath, title }: { year: number; basePath: str
         <ChevronLeft aria-hidden size={20} />
       </Link>
       <div className="text-center">
-        <h1 className="text-xl font-bold tracking-tight">{year}년</h1>
+        <h1 className="sr-only">{year}년</h1>
+        <YearSelect key={`${basePath}?${year}`} year={year} thisYear={Number(currentMonthKST().slice(0, 4))} basePath={basePath} />
         {title ? <p className="text-xs text-muted">{title}</p> : null}
       </div>
       <Link href={`${basePath}?year=${year + 1}`} aria-label="다음 해" className="flex size-10 items-center justify-center rounded-full bg-surface text-foreground shadow-card transition hover:bg-fill active:scale-95">
