@@ -42,11 +42,14 @@ function simplePdf(lines: string[][]): Buffer {
 }
 
 test("카드 이용내역 파일(xls·csv·pdf)로 거래 채우기", async ({ page }) => {
+  page.on("dialog", (dialog) => dialog.accept());
   await signupAndCreateHousehold(page, uid(), "민수");
   const month = kstMonth(0);
   const d = (day: string) => `${month.replace("-", ".")}.${day}`;
   // 스타벅스는 지난번에 카페·현금으로 입력
   await addTransaction(page, { group: "식비", category: "카페", amount: 5_000, payment: "현금", memo: "스타벅스", date: `${month}-01` });
+  // 고정지출은 정해 둔 날(1일)로 적어 두었다
+  await addTransaction(page, { group: "고정지출", category: "통신비", amount: 55_000, memo: "휴대폰 요금", date: `${month}-01` });
 
   // ── 진짜 엑셀 97 (xls) 파일, 제목 줄·합계·결제 후 취소 짝 ──
   const wb = XLSX.utils.book_new();
@@ -59,6 +62,7 @@ test("카드 이용내역 파일(xls·csv·pdf)로 거래 채우기", async ({ p
       [d("02"), "본인 1234", "김밥천국", "9,000", "일시불"],
       [d("03"), "본인 1234", "이마트 성수점", "45,000", "3개월"],
       [d("04"), "본인 1234", "김밥천국", "-9,000", "일시불"],
+      [d("05"), "본인 1234", "SKT통신요금", "55,000", "일시불"],
       ["합계", "", "", "49,500", ""],
     ]),
     "이용내역",
@@ -69,14 +73,18 @@ test("카드 이용내역 파일(xls·csv·pdf)로 거래 채우기", async ({ p
   await expect(page.getByRole("heading", { name: "카드 문자·파일로 입력" })).toBeVisible();
   const fileInput = page.getByLabel("카드 이용내역·명세서 파일");
   await fileInput.setInputFiles({ name: "이용내역.xls", mimeType: "application/vnd.ms-excel", buffer: xls });
-  await expect(page.getByRole("heading", { name: "찾은 거래 2건" })).toBeVisible();
-  await expect(page.getByRole("status")).toHaveText("파일에서 거래 2건을 찾았어요. 결제 후 취소된 1건은 뺐어요.");
+  await expect(page.getByRole("heading", { name: "찾은 거래 3건" })).toBeVisible();
+  await expect(page.getByRole("status")).toHaveText("파일에서 거래 3건을 찾았어요. 결제 후 취소된 1건은 뺐어요.");
   await expect(page.getByLabel("1번째 내용")).toHaveValue("스타벅스");
   await expect(page.getByLabel("1번째 금액")).toHaveValue("4,500");
   await expect(page.getByLabel("1번째 소분류").locator("option:checked")).toHaveText("카페");
   await expect(page.getByLabel("1번째 지출방법").locator("option:checked")).toHaveText("현금");
   await expect(page.getByLabel("2번째 내용")).toHaveValue("이마트 성수점");
   await expect(page.getByText("3개월")).toBeVisible();
+  // 날짜가 달라도 같은 달 고정지출에 같은 금액이 있으면 이미 넣은 것으로 보고 빼 둔다
+  await expect(page.getByLabel("3번째 내용")).toHaveValue("SKT통신요금");
+  await expect(page.getByText("이달 고정지출에 같은 금액이 있어요 (휴대폰 요금")).toBeVisible();
+  await expect(page.getByLabel("3번째 거래 저장")).not.toBeChecked();
 
   // 소분류가 빈 거래에 한꺼번에
   await page.getByLabel("소분류가 빈 1건에 한꺼번에").selectOption({ label: "마트" });
@@ -119,7 +127,31 @@ test("카드 이용내역 파일(xls·csv·pdf)로 거래 채우기", async ({ p
   await expect(page.getByLabel("1번째 내용")).toHaveValue("NETFLIX");
   await expect(page.getByLabel("1번째 금액")).toHaveValue("17,000");
 
+  // 가계부 시트를 카드 파일로 올리면 알려 준다
+  const ledger = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(
+    ledger,
+    XLSX.utils.aoa_to_sheet([["이달의 고정지출 내역"], ["No", "* 날짜", "내용", "* 금액"], [1, d("01"), "휴대폰 요금", 55000]]),
+    "1",
+  );
+  await fileInput.setInputFiles({
+    name: "가계부.xlsx",
+    mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    buffer: XLSX.write(ledger, { bookType: "xlsx", type: "buffer" }) as Buffer,
+  });
+  await expect(page.locator("p[role=alert]")).toContainText("가계부 시트 파일이에요.");
+
   // 거래가 없는 파일
   await fileInput.setInputFiles({ name: "empty.csv", mimeType: "text/csv", buffer: Buffer.from("메모\n안녕") });
   await expect(page.locator("p[role=alert]")).toContainText("파일에서 거래(날짜·금액)를 찾지 못했어요.");
+
+  // ── 한꺼번에 저장한 묶음 되돌리기 ──
+  await page.goto("/transactions/paste");
+  const batches = page.getByRole("region", { name: "최근에 한꺼번에 저장한 거래" });
+  await expect(batches).toContainText("이용내역.xls · 2건 49,500원");
+  await batches.getByRole("button", { name: "이용내역.xls 2건 되돌리기" }).click();
+  await expect(batches.getByRole("status")).toHaveText("거래 2건을 지웠어요.");
+  await page.goto(`/transactions?month=${month}`);
+  await expect(page.getByRole("link").filter({ hasText: "휴대폰 요금" }).first()).toBeVisible();
+  await expect(page.getByRole("link").filter({ hasText: "이마트 성수점" })).toHaveCount(0);
 });

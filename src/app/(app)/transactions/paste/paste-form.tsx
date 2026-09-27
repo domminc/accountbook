@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { formatDateLabel } from "@/lib/month";
 import { formatWon } from "@/lib/money";
-import type { PasteRow } from "@/lib/sms-suggest";
+import type { Duplicate, PasteRow } from "@/lib/sms-suggest";
 import { KIND_LABEL } from "@/lib/data/settings";
 import { inputClass, primaryButtonClass, secondaryButtonClass, smallInputClass } from "@/components/ui";
 import type { FormGroup, FormOption } from "../transaction-form";
@@ -16,6 +16,8 @@ type Row = {
   source: PasteRow;
   /** 자동으로 받은 문자면 그 id */
   messageId: string | null;
+  /** 카드 이용내역 파일에서 온 것이면 파일 이름 */
+  fileName: string | null;
   tagIds: string[];
   include: boolean;
   date: string;
@@ -29,11 +31,12 @@ type Row = {
 const GROUP_ORDER = ["variable_expense", "fixed_expense", "income", "saving"];
 
 let nextKey = 0;
-function toRow(s: PasteRow, messageId: string | null): Row {
+function toRow(s: PasteRow, messageId: string | null, fileName: string | null = null): Row {
   return {
     key: messageId ?? `p${nextKey++}`,
     source: s,
     messageId,
+    fileName,
     tagIds: s.tagIds,
     // 취소 문자·원화 금액이 없는 문자·이미 입력한 것 같은 문자는 빼 둔다
     include: !s.cancelled && s.amount !== null && !s.duplicateOf,
@@ -43,6 +46,12 @@ function toRow(s: PasteRow, messageId: string | null): Row {
     categoryId: s.categoryId ?? "",
     paymentMethodId: s.paymentMethodId ?? "",
   };
+}
+
+function duplicateText(d: Duplicate): string {
+  if (d.kind === "same_day") return `같은 날 같은 금액 거래가 이미 있어요 (${d.memo}). 확인 후 저장하세요.`;
+  if (d.kind === "near") return `${formatDateLabel(d.date)}에 같은 금액 거래가 있어요 (${d.memo}). 이미 입력했다면 빼 두세요.`;
+  return `이달 고정지출에 같은 금액이 있어요 (${d.memo}, ${formatDateLabel(d.date)}). 이미 입력했다면 빼 두세요.`;
 }
 
 export function PasteForm({
@@ -104,7 +113,7 @@ export function PasteForm({
         setError(r.error);
         return;
       }
-      setRows((prev) => [...(prev ?? []).filter((x) => x.messageId), ...r.rows.map((x) => toRow(x, null))]);
+      setRows((prev) => [...(prev ?? []).filter((x) => x.messageId), ...r.rows.map((x) => toRow(x, null, f.name))]);
       setNotice(
         [
           `파일에서 거래 ${r.found}건을 찾았어요.`,
@@ -147,6 +156,7 @@ export function PasteForm({
           tagIds: c.tagIds,
           messageId: c.messageId,
         })),
+        { fileName: chosen.find((c) => c.fileName)?.fileName ?? null },
       );
       if (r?.error) setError(r.error);
     });
@@ -313,9 +323,7 @@ export function PasteForm({
                   ) : null}
                   {s.amount === null ? <p className="mt-2 text-xs text-warning">원화 금액을 찾지 못했어요. 금액을 넣어 주세요.</p> : null}
                   {s.dateGuessed ? <p className="mt-2 text-xs text-warning">날짜를 찾지 못해 오늘로 두었어요.</p> : null}
-                  {s.duplicateOf ? (
-                    <p className="mt-2 text-xs text-warning">같은 날 같은 금액 거래가 이미 있어요 ({s.duplicateOf}). 확인 후 저장하세요.</p>
-                  ) : null}
+                  {s.duplicateOf ? <p className="mt-2 text-xs text-warning">{duplicateText(s.duplicateOf)}</p> : null}
 
                   {!disabled ? (
                     <div className="mt-3 grid grid-cols-2 gap-2">

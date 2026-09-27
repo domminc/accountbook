@@ -7,16 +7,25 @@ export type SuggestContext = {
   paymentMethods: { id: string; name: string }[];
   /** 가맹점(내용) → 가장 최근에 쓴 소분류·지출방법·태그. 키는 normalizeMemo */
   history: Map<string, { categoryId: string | null; paymentMethodId: string | null; tagIds?: string[] }>;
-  /** 이미 있는 거래 (날짜·금액이 같으면 중복 의심) */
-  existing: { date: string; amount: number; memo: string | null }[];
+  /** 이미 있는 거래 (같은 금액이 가까운 날·같은 달 고정지출에 있으면 중복 의심). fixed: 고정지출 소분류 */
+  existing: { date: string; amount: number; memo: string | null; fixed?: boolean }[];
 };
+
+/**
+ * 이미 입력한 것 같은 거래.
+ * - same_day: 같은 날 같은 금액
+ * - near: 3일 안에 같은 금액 (카드 승인일과 가계부에 적은 날이 다를 때)
+ * - fixed_month: 같은 달 고정지출에 같은 금액 (고정지출은 정해 둔 날로 적는 일이 많다)
+ */
+export type Duplicate = { memo: string; date: string; kind: "same_day" | "near" | "fixed_month" };
+
+export const NEAR_DAYS = 3;
 
 export type PasteRow = ParsedMessage & {
   categoryId: string | null;
   paymentMethodId: string | null;
   tagIds: string[];
-  /** 같은 날 같은 금액 거래의 내용 */
-  duplicateOf: string | null;
+  duplicateOf: Duplicate | null;
 };
 
 export function normalizeMemo(s: string): string {
@@ -49,17 +58,31 @@ export function suggestPaymentMethod(issuer: string | null, merchant: string, ct
   return past && ctx.paymentMethods.some((p) => p.id === past) ? past : null;
 }
 
+const dayNumber = (date: string) => Date.UTC(Number(date.slice(0, 4)), Number(date.slice(5, 7)) - 1, Number(date.slice(8, 10))) / 86_400_000;
+
+export function findDuplicate(date: string, amount: number, existing: SuggestContext["existing"]): Duplicate | null {
+  const same = existing.filter((e) => e.amount === amount);
+  const pick = (e: SuggestContext["existing"][number], kind: Duplicate["kind"]): Duplicate => ({ memo: e.memo ?? "내용 없음", date: e.date, kind });
+  const sameDay = same.find((e) => e.date === date);
+  if (sameDay) return pick(sameDay, "same_day");
+  const near = same
+    .map((e) => ({ e, d: Math.abs(dayNumber(e.date) - dayNumber(date)) }))
+    .filter((x) => x.d <= NEAR_DAYS)
+    .sort((a, b) => a.d - b.d)[0];
+  if (near) return pick(near.e, "near");
+  const fixed = same.find((e) => e.fixed && e.date.slice(0, 7) === date.slice(0, 7));
+  return fixed ? pick(fixed, "fixed_month") : null;
+}
+
 export function suggestRows(messages: ParsedMessage[], ctx: SuggestContext): PasteRow[] {
   return messages.map((m) => {
     const past = m.merchant ? ctx.history.get(normalizeMemo(m.merchant)) : undefined;
-    const dup =
-      m.amount !== null ? ctx.existing.find((e) => e.date === m.date && e.amount === m.amount) : undefined;
     return {
       ...m,
       categoryId: past?.categoryId ?? null,
       paymentMethodId: suggestPaymentMethod(m.issuer, m.merchant, ctx),
       tagIds: past?.tagIds ?? [],
-      duplicateOf: dup ? (dup.memo ?? "내용 없음") : null,
+      duplicateOf: m.amount !== null ? findDuplicate(m.date, m.amount, ctx.existing) : null,
     };
   });
 }

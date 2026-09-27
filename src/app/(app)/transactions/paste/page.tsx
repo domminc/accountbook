@@ -3,11 +3,16 @@ import { withUser } from "@/lib/db";
 import { requireHousehold } from "@/lib/household";
 import { loadFormOptions } from "../form-data";
 import { PasteForm } from "./paste-form";
-import { loadPendingSms } from "./actions";
+import { loadEntryBatches, loadPendingSms } from "./actions";
+import { EntryBatches } from "./entry-batches";
 
 export default async function PastePage() {
   const m = await requireHousehold();
-  const [options, inbox] = await Promise.all([withUser(m.userId, (tx) => loadFormOptions(tx, m.householdId)), loadPendingSms()]);
+  const [options, inbox, batches] = await Promise.all([
+    withUser(m.userId, (tx) => loadFormOptions(tx, m.householdId)),
+    loadPendingSms(),
+    loadEntryBatches(),
+  ]);
 
   return (
     <div>
@@ -23,6 +28,7 @@ export default async function PastePage() {
         </Link>
       </p>
       <PasteForm groups={options.groups} paymentMethods={options.paymentMethods} tags={options.tags} inbox={inbox} />
+      <EntryBatches batches={batches} />
     </div>
   );
 }

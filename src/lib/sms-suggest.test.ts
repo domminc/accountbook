@@ -40,6 +40,31 @@ describe("suggestRows", () => {
       [msg("삼성카드 승인 5,000원 09/26 09:00 스타벅스"), msg("삼성카드 승인 6,000원 09/26 09:00 스타벅스")],
       ctx({ existing }),
     );
-    expect(rows.map((r) => r.duplicateOf)).toEqual(["커피", null]);
+    expect(rows.map((r) => r.duplicateOf)).toEqual([{ memo: "커피", date: "2026-09-26", kind: "same_day" }, null]);
+  });
+
+  it("3일 안의 같은 금액, 같은 달 고정지출의 같은 금액도 중복 의심", () => {
+    const existing = [
+      { date: "2026-09-23", amount: 7_000, memo: "점심" },
+      { date: "2026-09-22", amount: 7_000, memo: "더 먼 점심" },
+      { date: "2026-09-01", amount: 55_000, memo: "휴대폰 요금", fixed: true },
+      { date: "2026-09-01", amount: 9_900, memo: "간식" },
+      { date: "2026-08-25", amount: 12_000, memo: "지난달 고정", fixed: true },
+    ];
+    const rows = suggestRows(
+      [
+        msg("삼성카드 승인 7,000원 09/26 12:00 식당"),
+        msg("삼성카드 승인 55,000원 09/20 09:00 SKT"),
+        msg("삼성카드 승인 9,900원 09/20 09:00 편의점"),
+        msg("삼성카드 승인 12,000원 09/20 09:00 넷플릭스"),
+      ],
+      ctx({ existing }),
+    );
+    expect(rows.map((r) => r.duplicateOf)).toEqual([
+      { memo: "점심", date: "2026-09-23", kind: "near" },
+      { memo: "휴대폰 요금", date: "2026-09-01", kind: "fixed_month" },
+      null, // 고정지출이 아니고 3일보다 멀다
+      null, // 고정지출이지만 다른 달
+    ]);
   });
 });
