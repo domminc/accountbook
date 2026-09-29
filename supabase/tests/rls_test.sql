@@ -331,4 +331,81 @@ select pg_temp.assert(
   (select count(*) from public.category_groups where household_id = :'a_household') = 0, 'A 가구 cascade 삭제');
 select pg_temp.assert((select count(*) from public.transactions) = 0, 'A 거래 cascade 삭제');
 
+-- ── 계정: 내 아이디 보기 · 패스키 · 회원 탈퇴 ──
+insert into public.users (id, login_id, password_hash) values
+  ('00000000-0000-0000-0000-0000000000fc', 'user_p', 'x'),
+  ('00000000-0000-0000-0000-0000000000fd', 'user_q', 'x'),
+  ('00000000-0000-0000-0000-0000000000fe', 'user_r', 'x');
+
+set role anon;
+select pg_temp.expect_error('select public.delete_my_account()', 'anon 탈퇴 호출 차단');
+select pg_temp.expect_error('select * from public.passkeys', 'anon 패스키 조회 차단');
+reset role;
+
+set request.jwt.claim.sub to '00000000-0000-0000-0000-0000000000fc';
+set role authenticated;
+select pg_temp.assert((select array_agg(login_id) from public.users) = array['user_p'], '내 아이디만 보임');
+select pg_temp.expect_error($$select password_hash from public.users$$, '비밀번호 해시는 계속 못 봄');
+select pg_temp.expect_error($$update public.users set login_id = 'hacked'$$, '아이디 직접 변경 차단');
+select public.create_household('함께', '철수') as c_household \gset
+insert into public.passkeys (user_id, credential_id, public_key, name)
+values ('00000000-0000-0000-0000-0000000000fc', 'cred_c_0123456789abcdef', '\x01', '철수 아이폰');
+select pg_temp.expect_error(
+  $$insert into public.passkeys (user_id, credential_id, public_key, name)
+    values ('00000000-0000-0000-0000-0000000000fd', 'cred_d_0123456789abcdef', '\x01', '남의 것')$$,
+  '다른 사람 이름으로 패스키 등록 차단');
+select pg_temp.expect_error($$update public.passkeys set counter = 99$$, '패스키 counter 직접 변경 차단');
+update public.passkeys set name = '철수 폰';
+select pg_temp.assert((select name from public.passkeys) = '철수 폰', '패스키 이름 변경');
+insert into public.transactions (household_id, occurred_on, amount, memo, created_by)
+values (:'c_household', '2026-04-01', 5000, '철수 입력', '00000000-0000-0000-0000-0000000000fc');
+insert into public.inbound_tokens (household_id, user_id, name, token_hash)
+values (:'c_household', '00000000-0000-0000-0000-0000000000fc', '철수 폰', repeat('c', 64));
+reset role;
+-- D는 초대로 들어온 구성원 (accept_invite 대신 직접 넣음)
+insert into public.members (household_id, user_id, role, display_name, created_at)
+values (:'c_household', '00000000-0000-0000-0000-0000000000fd', 'member', '영희', now() + interval '1 second');
+
+set request.jwt.claim.sub to '00000000-0000-0000-0000-0000000000fd';
+set role authenticated;
+select pg_temp.assert((select count(*) from public.passkeys) = 0, '같은 가계부여도 남의 패스키는 안 보임');
+delete from public.passkeys;
+select pg_temp.assert((select array_agg(login_id) from public.users) = array['user_q'], '배우자 아이디도 안 보임');
+reset role;
+select pg_temp.assert((select count(*) from public.passkeys) = 1, '남의 패스키는 못 지움');
+
+-- C(만든 사람)가 탈퇴: 가계부는 남고 D가 이어받는다
+set request.jwt.claim.sub to '00000000-0000-0000-0000-0000000000fc';
+set role authenticated;
+select public.delete_my_account();
+reset role;
+select pg_temp.assert((select count(*) from public.users where id = '00000000-0000-0000-0000-0000000000fc') = 0, '탈퇴한 사용자 삭제');
+select pg_temp.assert((select count(*) from public.households where id = :'c_household') = 1, '함께 쓰던 가계부는 남음');
+select pg_temp.assert(
+  (select array_agg(user_id::text || ':' || role) from public.members where household_id = :'c_household')
+    = array['00000000-0000-0000-0000-0000000000fd:owner'],
+  '남은 구성원이 만든 사람을 이어받음');
+select pg_temp.assert(
+  (select created_by is null from public.transactions where memo = '철수 입력'), '탈퇴한 사람이 입력한 거래는 남고 입력자만 비움');
+select pg_temp.assert((select count(*) from public.passkeys) = 0, '탈퇴하면 패스키 삭제');
+select pg_temp.assert((select count(*) from public.inbound_tokens where household_id = :'c_household') = 0, '탈퇴하면 문자 토큰 삭제');
+
+-- D(마지막 구성원)가 탈퇴: 가계부와 데이터를 모두 지운다
+set request.jwt.claim.sub to '00000000-0000-0000-0000-0000000000fd';
+set role authenticated;
+select public.delete_my_account();
+reset role;
+select pg_temp.assert((select count(*) from public.users where id = '00000000-0000-0000-0000-0000000000fd') = 0, '마지막 구성원 삭제');
+select pg_temp.assert((select count(*) from public.households where id = :'c_household') = 0, '혼자 남은 가계부는 삭제');
+select pg_temp.assert((select count(*) from public.transactions where household_id = :'c_household') = 0, '가계부 거래도 삭제');
+select pg_temp.assert((select count(*) from public.category_groups where household_id = :'c_household') = 0, '가계부 카테고리도 삭제');
+
+-- 가계부를 만들기 전에 탈퇴
+set request.jwt.claim.sub to '00000000-0000-0000-0000-0000000000fe';
+set role authenticated;
+select public.delete_my_account();
+reset role;
+select pg_temp.assert((select count(*) from public.users where id = '00000000-0000-0000-0000-0000000000fe') = 0, '가계부 없는 사용자 탈퇴');
+select pg_temp.assert((select count(*) from public.users where login_id = 'user_b') = 1, '다른 사용자는 그대로');
+
 \echo 'OK: 모든 DB 테스트 통과'

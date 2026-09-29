@@ -1,5 +1,6 @@
 import postgres from "postgres";
 import { projectRef, resolveDatabaseUrl, resolveSessionSecret } from "@/lib/db-url.mjs";
+import { buildAssetLinks } from "@/lib/assetlinks";
 
 /**
  * 배포 점검용. 로그인 없이 열 수 있고, 비밀 값은 보여주지 않는다.
@@ -24,16 +25,21 @@ export async function GET() {
     연동_변수: integration,
     비슷한_이름의_변수: similar.map((k) => JSON.stringify(k)),
     지역: process.env.VERCEL_REGION ?? "알 수 없음",
+    // 스토어 앱을 올리기 전에는 없음이 정상 (docs/DEPLOY.md "안드로이드 앱")
+    안드로이드_앱_연결: buildAssetLinks(process.env.ANDROID_PACKAGE_NAME, process.env.ANDROID_SHA256_FINGERPRINTS).length
+      ? `있음 (${process.env.ANDROID_PACKAGE_NAME?.trim()})`
+      : "없음",
   };
 
   if (url) {
     const sql = postgres(url, { prepare: false, max: 1, connect_timeout: 10, idle_timeout: 1 });
     try {
-      const [r] = await sql<{ households: string | null; inbound: string | null }[]>`
-        select to_regclass('public.households')::text as households, to_regclass('public.inbound_tokens')::text as inbound
+      // latest: 가장 최근 마이그레이션이 만든 표
+      const [r] = await sql<{ households: string | null; latest: string | null }[]>`
+        select to_regclass('public.households')::text as households, to_regclass('public.passkeys')::text as latest
       `;
       report["DB"] = "접속됨";
-      report["표"] = r.households && r.inbound ? "모두 있음" : r.households ? "일부만 있음 (최신 SQL 이 빠짐)" : "없음 (SQL 을 실행하지 않음)";
+      report["표"] = r.households && r.latest ? "모두 있음" : r.households ? "일부만 있음 (최신 SQL 이 빠짐)" : "없음 (SQL 을 실행하지 않음)";
     } catch (e) {
       report["DB"] = `접속 실패: ${redact(e instanceof Error ? e.message : String(e))}`;
     } finally {

@@ -6,6 +6,7 @@ export const inputClass =
 export const smallInputClass =
   "h-10 w-full rounded-xl border border-border bg-surface px-3 text-sm outline-none transition placeholder:text-muted/70 focus:border-accent focus:ring-4 focus:ring-accent/15";
 export const primaryButtonClass = `h-12 rounded-2xl bg-accent px-5 text-base font-semibold text-accent-foreground shadow-sm hover:brightness-110 disabled:opacity-50 ${press}`;
+export const dangerButtonClass = `h-12 rounded-2xl bg-danger px-5 text-base font-semibold text-accent-foreground shadow-sm hover:brightness-110 disabled:opacity-50 ${press}`;
 export const secondaryButtonClass = `h-12 rounded-2xl border border-border bg-surface px-5 text-base font-semibold hover:bg-fill disabled:opacity-50 ${press}`;
 export const smallButtonClass = `h-10 shrink-0 rounded-xl border border-border bg-surface px-3 text-sm font-medium hover:bg-fill disabled:opacity-40 ${press}`;
 export const cardClass = "rounded-3xl bg-surface shadow-card";

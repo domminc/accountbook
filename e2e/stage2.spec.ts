@@ -151,12 +151,12 @@ test("가입 → 설정 → 거래 입력·조회·수정·삭제 → 고정지�
 
   await page.locator("input[name=loginId]").fill(loginId);
   await page.locator("input[name=password]").fill("wrong-password");
-  await page.getByRole("button", { name: "로그인" }).click();
+  await page.getByRole("button", { name: "로그인", exact: true }).click();
   await expect(page.locator("p[role=alert]")).toHaveText("아이디 또는 비밀번호가 맞지 않아요.");
 
   await page.locator("input[name=loginId]").fill(loginId.toUpperCase());
   await page.locator("input[name=password]").fill(PASSWORD);
-  await page.getByRole("button", { name: "로그인" }).click();
+  await page.getByRole("button", { name: "로그인", exact: true }).click();
   await expect(page.getByRole("main").getByRole("link", { name: "거래 입력", exact: true })).toBeVisible();
 });
 

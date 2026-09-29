@@ -26,6 +26,7 @@ const MARKERS = {
   "20261003000000_receipts.sql": "select to_regclass('public.transaction_receipts') is not null as ok",
   "20261004000000_sms_inbound.sql": "select to_regclass('public.inbound_tokens') is not null as ok",
   "20261005000000_entry_batches.sql": "select to_regclass('public.entry_batches') is not null as ok",
+  "20261006000000_account.sql": "select to_regclass('public.passkeys') is not null as ok",
 };
 
 const { url, source } = resolveDatabaseUrl();

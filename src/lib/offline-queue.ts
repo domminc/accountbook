@@ -90,3 +90,11 @@ export function subscribeQueue(onChange: () => void): () => void {
 export function isNetworkError(e: unknown): boolean {
   return (typeof navigator !== "undefined" && navigator.onLine === false) || e instanceof TypeError;
 }
+
+/** 탈퇴 중인 사용자 id 를 잠깐 적어 두는 sessionStorage 키 (탈퇴 화면 → 로그인 화면) */
+export const DELETING_KEY = "ab_deleting_user";
+
+/** 탈퇴한 사람이 이 기기에 남긴 대기열을 지운다 */
+export function forgetQueuedFor(userId: string) {
+  if (readAll().some((q) => q.userId === userId)) writeAll(readAll().filter((q) => q.userId !== userId));
+}

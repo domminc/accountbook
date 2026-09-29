@@ -1,9 +1,9 @@
 "use server";
 
-import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { dbErrorMessage, withUser } from "@/lib/db";
 import { requireHousehold } from "@/lib/household";
+import { requestOrigin } from "@/lib/request-origin";
 import { INVITE_DAYS, inviteTokenHash, newInviteToken } from "@/lib/invite";
 import { firstError, nameSchema } from "@/lib/validation";
 import type { ActionState } from "@/lib/action-state";
@@ -21,11 +21,9 @@ export async function createInvite(): Promise<InviteState> {
   } catch (e) {
     return { error: dbErrorMessage(e) };
   }
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  const origin = await requestOrigin();
   revalidatePath("/settings/members");
-  return { link: `${proto}://${host}/invite/${token}` };
+  return { link: `${origin.origin}/invite/${token}` };
 }
 
 export async function revokeInvite(id: string): Promise<ActionState> {

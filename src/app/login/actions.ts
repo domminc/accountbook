@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { startSession } from "@/lib/auth";
 import { verifyPassword, verifyPasswordDummy } from "@/lib/password";
+import { passkeyLoginOptions, verifyPasskeyLogin } from "@/lib/passkey";
+import type { AuthenticationResponseJSON, PublicKeyCredentialRequestOptionsJSON } from "@simplewebauthn/server";
 import { safeNextPath } from "@/lib/safe-next-path";
 import type { ActionState } from "@/lib/action-state";
 
@@ -24,4 +26,19 @@ export async function login(_prev: ActionState, formData: FormData): Promise<Act
 
   await startSession(user.id);
   redirect(next);
+}
+
+/** Face ID·지문 로그인 1단계: 기기에 보낼 challenge */
+export async function startPasskeyLogin(): Promise<PublicKeyCredentialRequestOptionsJSON> {
+  return passkeyLoginOptions();
+}
+
+export type PasskeyLoginState = { next?: string; error?: string; unknownCredential?: { rpID: string; credentialID: string } };
+
+/** Face ID·지문 로그인 2단계: 기기의 서명을 확인하고 로그인. 화면 이동은 브라우저가 한다. */
+export async function finishPasskeyLogin(response: AuthenticationResponseJSON, next: string): Promise<PasskeyLoginState> {
+  const result = await verifyPasskeyLogin(response);
+  if ("error" in result) return result;
+  await startSession(result.userId);
+  return { next: safeNextPath(next) };
 }

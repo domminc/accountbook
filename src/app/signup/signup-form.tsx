@@ -45,7 +45,14 @@ export function SignupForm({ next }: { next: string }) {
             </p>
           ) : null}
 
-          <button type="submit" disabled={pending} className={`mt-2 ${primaryButtonClass}`}>
+          <p className="text-xs text-muted">
+            아이디를 만들면{" "}
+            <Link href="/privacy" target="_blank" className="underline underline-offset-4">
+              개인정보처리방침
+            </Link>
+            에 따라 가계부 이용에 필요한 정보를 처리하는 데 동의하는 것으로 봐요. 만 14세 이상만 가입할 수 있어요.
+          </p>
+          <button type="submit" disabled={pending} className={`${primaryButtonClass}`}>
             {pending ? "만드는 중…" : "아이디 만들기"}
           </button>
           <Link

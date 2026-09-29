@@ -19,6 +19,12 @@ function sign(data: string) {
   return createHmac("sha256", secret()).update(data).digest("base64url");
 }
 
+function checkSignature(data: string, sig: string) {
+  const expected = Buffer.from(sign(data));
+  const given = Buffer.from(sig);
+  return expected.length === given.length && timingSafeEqual(expected, given);
+}
+
 /** 사용자 id로 서명된 세션 토큰을 만든다. */
 export function createSessionToken(userId: string, now = Date.now()): string {
   const payload: Payload = { uid: userId, exp: Math.floor(now / 1000) + SESSION_MAX_AGE };
@@ -32,15 +38,39 @@ export function verifySessionToken(token: string | undefined, now = Date.now()):
   const [data, sig] = token.split(".");
   if (!data || !sig) return null;
 
-  const expected = Buffer.from(sign(data));
-  const given = Buffer.from(sig);
-  if (expected.length !== given.length || !timingSafeEqual(expected, given)) return null;
+  if (!checkSignature(data, sig)) return null;
 
   try {
     const payload = JSON.parse(Buffer.from(data, "base64url").toString()) as Payload;
     if (typeof payload.uid !== "string" || typeof payload.exp !== "number") return null;
     if (payload.exp * 1000 < now) return null;
     return payload.uid;
+  } catch {
+    return null;
+  }
+}
+
+// 잠깐 쓰는 서명 값 (패스키 challenge 등). 서명할 때 앞에 "sv:" 를 붙여서, 세션 토큰(base64url 에는 ':' 이 없음)과
+// 서명이 겹치지 않는다. 그래서 둘을 서로 바꿔 쓸 수 없다.
+type SignedValue = { p: string; v: string; exp: number };
+
+/** purpose 용도로 maxAgeSec 초 동안만 읽을 수 있는 서명 값 */
+export function createSignedValue(purpose: string, value: string, maxAgeSec: number, now = Date.now()): string {
+  const payload: SignedValue = { p: purpose, v: value, exp: Math.floor(now / 1000) + maxAgeSec };
+  const data = Buffer.from(JSON.stringify(payload)).toString("base64url");
+  return `${data}.${sign(`sv:${data}`)}`;
+}
+
+/** 서명이 맞고, 용도가 같고, 만료되지 않았으면 값. 아니면 null. */
+export function readSignedValue(purpose: string, token: string | undefined, now = Date.now()): string | null {
+  if (!token) return null;
+  const [data, sig] = token.split(".");
+  if (!data || !sig || !checkSignature(`sv:${data}`, sig)) return null;
+  try {
+    const payload = JSON.parse(Buffer.from(data, "base64url").toString()) as SignedValue;
+    if (payload.p !== purpose || typeof payload.v !== "string" || typeof payload.exp !== "number") return null;
+    if (payload.exp * 1000 < now) return null;
+    return payload.v;
   } catch {
     return null;
   }
