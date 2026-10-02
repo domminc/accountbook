@@ -23,6 +23,7 @@ test("스토어 심사용 공개 안내: 개인정보처리방침·계정 삭제
   await expect(page).toHaveURL(/\/privacy$/);
   await expect(page.getByRole("heading", { name: "개인정보처리방침", level: 1 })).toBeVisible();
   await expect(page.getByText("생체 정보는 기기 밖으로 나오지 않으며")).toBeVisible();
+  await expect(page.getByText("개인정보 보호책임자: 김영진")).toBeVisible();
 
   await page.getByRole("link", { name: "계정 삭제 안내" }).click();
   await expect(page).toHaveURL(/\/account-deletion$/);
