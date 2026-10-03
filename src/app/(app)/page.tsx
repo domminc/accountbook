@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { withUser } from "@/lib/db";
 import { requireHousehold } from "@/lib/household";
@@ -82,34 +83,12 @@ export default async function MonthSummaryPage({ searchParams }: PageProps<"/">)
         </p>
       </div>
 
-      {/* PC: 요약(넓게)과 바로 가기를 한 줄에 */}
-      <div className="flex flex-col gap-5 lg:grid lg:grid-cols-3 lg:items-start">
-        <div className="flex flex-col gap-2 lg:col-span-2">
-          <SummaryCard totals={totals} prev={prev} />
-          {uncategorized > 0 ? (
-            <Link href={`/transactions?month=${month}&uncategorized=1`} className="text-sm text-danger underline underline-offset-4">
-              분류가 필요한 거래 {uncategorized}건은 합계에 들어가지 않았어요
-            </Link>
-          ) : null}
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <Link href={`/transactions/new?month=${month}`} className={`flex items-center justify-center ${primaryButtonClass}`}>
-            거래 입력
-          </Link>
-          <div className="grid grid-cols-3 gap-2">
-            <Link href={`/budget?month=${month}`} className={`flex items-center justify-center ${smallButtonClass}`}>
-              목표·예산
-            </Link>
-            <Link href={`/weekly?month=${month}`} className={`flex items-center justify-center ${smallButtonClass}`}>
-              주간별 표
-            </Link>
-            <Link href={`/transactions/calendar?month=${month}`} className={`flex items-center justify-center ${smallButtonClass}`}>
-              달력
-            </Link>
-          </div>
-        </div>
-      </div>
+      <SummaryBento totals={totals} prev={prev} cells={[...cells.values()]} today={today} month={month} />
+      {uncategorized > 0 ? (
+        <Link href={`/transactions?month=${month}&uncategorized=1`} className="-mt-2 text-sm text-danger underline underline-offset-4">
+          분류가 필요한 거래 {uncategorized}건은 합계에 들어가지 않았어요
+        </Link>
+      ) : null}
 
       {/* PC: 카드들을 두 단으로 */}
       <div className="flex flex-col gap-5 lg:block lg:columns-2 lg:gap-5 lg:*:mb-5 lg:*:break-inside-avoid">
@@ -172,48 +151,104 @@ function Delta({ value, better }: { value: number; better: "up" | "down" }) {
   );
 }
 
-function SummaryCard({ totals, prev }: { totals: MonthTotals; prev: MonthTotals }) {
+/** 이달 요약 벤토: 큰 타일(남은 금액 + 날마다 지출 막대)과 숫자 타일, 바로 가기 타일 */
+function SummaryBento({
+  totals,
+  prev,
+  cells,
+  today,
+  month,
+}: {
+  totals: MonthTotals;
+  prev: MonthTotals;
+  cells: DayCell[];
+  today: string;
+  month: string;
+}) {
+  const spend = cells.map((c) => ({ date: c.date, amount: c.fixed + c.variable }));
+  const max = Math.max(1, ...spend.map((d) => d.amount));
+  const metric = "tile rise relative flex min-w-0 flex-col justify-between rounded-2xl p-4 sm:col-span-2";
   return (
-    <section className={`overflow-hidden ${cardClass}`} aria-label="이달 요약">
-      {/* 테마와 상관없이 같은 파랑 위 흰 글씨 (명암비 5:1 이상) */}
-      <div className="bg-linear-to-br from-[#2563eb] to-[#1e3fae] px-5 pt-5 pb-6 text-white">
-        <p className="text-sm text-white/85">남은 금액 (수입 − 지출)</p>
-        <p className="mt-1 text-4xl font-bold tracking-tight break-all tabular-nums">{formatWon(totals.remaining)}원</p>
+    <section aria-label="이달 요약" className="grid grid-cols-2 gap-3 sm:grid-cols-6 lg:gap-4">
+      <div className="tile rise relative col-span-2 flex min-h-56 flex-col overflow-hidden rounded-2xl p-5 sm:col-span-4 sm:row-span-2 lg:p-6">
+        {/* 타일 뒤에서 새어 나오는 글로우 */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-28 -right-20 size-80 rounded-full bg-[radial-gradient(circle,var(--glow-a)_0%,var(--glow-b)_40%,transparent_70%)] blur-2xl"
+        />
+        <p className="relative text-sm text-muted">남은 금액 · 수입 − 지출</p>
+        <p className="relative mt-2 text-[2.5rem] leading-[1.06] font-semibold tracking-[-0.03em] break-all tabular-nums glow-text lg:text-[3.25rem]">
+          {formatWon(totals.remaining)}
+          <span className="ml-1 text-xl font-medium text-muted lg:text-2xl">원</span>
+        </p>
         {totals.remaining < 0 ? (
-          <p className="mt-2 inline-block rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium">지출이 수입보다 많아요</p>
+          <p className="relative mt-2 w-fit rounded-full border border-danger/40 bg-danger/10 px-2.5 py-0.5 text-xs font-medium text-danger">
+            지출이 수입보다 많아요
+          </p>
         ) : null}
+        <div className="relative mt-auto pt-6">
+          <div className="flex items-baseline justify-between text-xs text-muted">
+            <span>날마다 지출</span>
+            <span className="tabular-nums">
+              고정 {formatWon(totals.fixed)} · 비고정 {formatWon(totals.variable)}
+            </span>
+          </div>
+          <div aria-hidden className="mt-2 flex h-16 items-end gap-[3px]">
+            {spend.map((d) => (
+              <span
+                key={d.date}
+                title={`${formatDateLabel(d.date)} ${formatWon(d.amount)}원`}
+                className={`min-h-[3px] flex-1 rounded-[3px] ${
+                  d.date === today
+                    ? "bg-linear-to-t from-[var(--cta-from)] to-[var(--magenta)]"
+                    : d.date > today
+                      ? "bg-fill"
+                      : "bg-accent/45"
+                }`}
+                style={{ height: `${d.date > today ? 4 : Math.max(4, (d.amount / max) * 100)}%` }}
+              />
+            ))}
+          </div>
+        </div>
       </div>
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-4 p-5 sm:grid-cols-4 [&_dd]:break-all [&>div]:min-w-0">
-        <div>
-          <dt className="text-xs font-medium text-muted">총 수입</dt>
-          <dd className="mt-0.5 text-lg font-bold tabular-nums">{formatWon(totals.income)}</dd>
-          <dd>
-            <Delta value={totals.income - prev.income} better="up" />
-          </dd>
+
+      <Metric className={metric} label="총 수입" value={formatWon(totals.income)} delta={<Delta value={totals.income - prev.income} better="up" />} />
+      <Metric className={metric} label="총 지출" value={formatWon(totals.expense)} delta={<Delta value={totals.expense - prev.expense} better="down" />} />
+      <Metric className={metric} label="총 저축" value={formatWon(totals.saving)} delta={<Delta value={totals.saving - prev.saving} better="up" />} />
+      <Metric
+        className={metric}
+        label="저축률"
+        value={totals.savingRate === null ? "-" : formatPercent(totals.savingRate)}
+        delta={<span className="text-xs text-muted">수입 중 저축</span>}
+      />
+
+      <div className="tile rise col-span-2 flex flex-col gap-2 rounded-2xl p-3 sm:col-span-2">
+        <Link href={`/transactions/new?month=${month}`} className={`flex items-center justify-center ${primaryButtonClass}`}>
+          거래 입력
+        </Link>
+        <div className="grid grid-cols-3 gap-2">
+          <Link href={`/budget?month=${month}`} className={`flex items-center justify-center ${smallButtonClass}`}>
+            목표·예산
+          </Link>
+          <Link href={`/weekly?month=${month}`} className={`flex items-center justify-center ${smallButtonClass}`}>
+            주간별 표
+          </Link>
+          <Link href={`/transactions/calendar?month=${month}`} className={`flex items-center justify-center ${smallButtonClass}`}>
+            달력
+          </Link>
         </div>
-        <div>
-          <dt className="text-xs font-medium text-muted">총 지출</dt>
-          <dd className="mt-0.5 text-lg font-bold tabular-nums">{formatWon(totals.expense)}</dd>
-          <dd>
-            <Delta value={totals.expense - prev.expense} better="down" />
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs font-medium text-muted">총 저축</dt>
-          <dd className="mt-0.5 text-lg font-bold tabular-nums">{formatWon(totals.saving)}</dd>
-          <dd>
-            <Delta value={totals.saving - prev.saving} better="up" />
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs font-medium text-muted">저축률</dt>
-          <dd className="mt-0.5 text-lg font-bold tabular-nums">{totals.savingRate === null ? "-" : formatPercent(totals.savingRate)}</dd>
-          <dd className="text-xs text-muted">
-            고정 {formatWon(totals.fixed)} · 비고정 {formatWon(totals.variable)}
-          </dd>
-        </div>
-      </dl>
+      </div>
     </section>
+  );
+}
+
+function Metric({ className, label, value, delta }: { className: string; label: string; value: string; delta: ReactNode }) {
+  return (
+    <div className={className}>
+      <p className="text-xs font-medium tracking-[0.04em] text-muted">{label}</p>
+      <p className="mt-3 text-xl font-semibold tracking-[-0.02em] break-all tabular-nums lg:text-2xl">{value}</p>
+      <div className="mt-1">{delta}</div>
+    </div>
   );
 }
 

@@ -6,7 +6,7 @@ import { YearSelect } from "./period-select";
 export function YearNav({ year, basePath, title }: { year: number; basePath: string; title?: string }) {
   return (
     <div className="flex items-center justify-between">
-      <Link href={`${basePath}?year=${year - 1}`} aria-label="이전 해" className="flex size-10 items-center justify-center rounded-full bg-surface text-foreground shadow-card transition hover:bg-fill active:scale-95">
+      <Link href={`${basePath}?year=${year - 1}`} aria-label="이전 해" className="flex size-10 items-center justify-center tile rounded-full text-foreground transition hover:border-border-strong hover:brightness-125 active:scale-95">
         <ChevronLeft aria-hidden size={20} />
       </Link>
       <div className="text-center">
@@ -14,7 +14,7 @@ export function YearNav({ year, basePath, title }: { year: number; basePath: str
         <YearSelect key={`${basePath}?${year}`} year={year} thisYear={Number(currentMonthKST().slice(0, 4))} basePath={basePath} />
         {title ? <p className="text-xs text-muted">{title}</p> : null}
       </div>
-      <Link href={`${basePath}?year=${year + 1}`} aria-label="다음 해" className="flex size-10 items-center justify-center rounded-full bg-surface text-foreground shadow-card transition hover:bg-fill active:scale-95">
+      <Link href={`${basePath}?year=${year + 1}`} aria-label="다음 해" className="flex size-10 items-center justify-center tile rounded-full text-foreground transition hover:border-border-strong hover:brightness-125 active:scale-95">
         <ChevronRight aria-hidden size={20} />
       </Link>
     </div>

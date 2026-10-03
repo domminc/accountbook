@@ -8,7 +8,7 @@ export function MonthNav({ month, basePath, title }: { month: string; basePath: 
   const href = (m: string) => `${basePath}?month=${m}`;
   return (
     <div className="flex items-center justify-between">
-      <Link href={href(addMonths(month, -1))} aria-label="이전 달" className="flex size-10 items-center justify-center rounded-full bg-surface text-foreground shadow-card transition hover:bg-fill active:scale-95">
+      <Link href={href(addMonths(month, -1))} aria-label="이전 달" className="flex size-10 items-center justify-center tile rounded-full text-foreground transition hover:border-border-strong hover:brightness-125 active:scale-95">
         <ChevronLeft aria-hidden size={20} />
       </Link>
       <div className="text-center">
@@ -16,7 +16,7 @@ export function MonthNav({ month, basePath, title }: { month: string; basePath: 
         <MonthSelect key={`${basePath}?${month}`} month={month} thisYear={Number(currentMonthKST().slice(0, 4))} basePath={basePath} />
         {title ? <p className="text-xs text-muted">{title}</p> : null}
       </div>
-      <Link href={href(addMonths(month, 1))} aria-label="다음 달" className="flex size-10 items-center justify-center rounded-full bg-surface text-foreground shadow-card transition hover:bg-fill active:scale-95">
+      <Link href={href(addMonths(month, 1))} aria-label="다음 달" className="flex size-10 items-center justify-center tile rounded-full text-foreground transition hover:border-border-strong hover:brightness-125 active:scale-95">
         <ChevronRight aria-hidden size={20} />
       </Link>
     </div>

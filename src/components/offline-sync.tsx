@@ -76,7 +76,7 @@ export function OfflineSync({ userId }: { userId: string }) {
   if (online && queue.length === 0) return null;
 
   return (
-    <div aria-live="polite" className="mb-4 rounded-xl border border-border bg-surface px-4 py-3 text-sm">
+    <div aria-live="polite" className="mb-4 tile rounded-xl px-4 py-3 text-sm">
       {!online ? <p className="font-medium">인터넷 연결이 없어요. 새 거래는 이 기기에 저장했다가 연결되면 올려요.</p> : null}
       {pending.length > 0 ? (
         <p className={online ? "" : "mt-1 text-muted"}>

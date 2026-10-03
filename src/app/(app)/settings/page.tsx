@@ -1,5 +1,9 @@
 import Link from "next/link";
-import { cardClass } from "@/components/ui";
+import { cookies } from "next/headers";
+import { ChevronRight } from "lucide-react";
+import { cardClass, segmentGroupClass, segmentItemClass } from "@/components/ui";
+import { THEME_COOKIE, THEME_LABEL, THEMES, parseTheme } from "@/lib/theme";
+import { setTheme } from "./theme/actions";
 
 const LINKS = [
   { href: "/settings/members", title: "구성원·초대", desc: "배우자 초대, 내 이름" },
@@ -11,16 +15,33 @@ const LINKS = [
   { href: "/settings/data", title: "데이터 가져오기·내보내기", desc: "구글 시트(xlsx) 가져오기, CSV 내보내기" },
 ];
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
   return (
     <div>
       <h1 className="text-xl font-bold">설정</h1>
-      <ul className={`mt-4 divide-y divide-border ${cardClass}`}>
+      <section aria-labelledby="theme-title" className={`mt-4 p-4 ${cardClass}`}>
+        <h2 id="theme-title" className="font-medium">
+          화면 테마
+        </h2>
+        <p className="mt-0.5 text-sm text-muted">이 기기에만 적용돼요.</p>
+        <form action={setTheme} className={`mt-3 grid-cols-3 ${segmentGroupClass}`}>
+          {THEMES.map((t) => (
+            <button key={t} type="submit" name="theme" value={t} aria-pressed={theme === t} className={segmentItemClass(theme === t)}>
+              {THEME_LABEL[t]}
+            </button>
+          ))}
+        </form>
+      </section>
+      <ul className={`mt-4 divide-y divide-border overflow-hidden ${cardClass}`}>
         {LINKS.map((l) => (
           <li key={l.href}>
-            <Link href={l.href} className="block px-4 py-4">
-              <span className="font-medium">{l.title}</span>
-              <span className="mt-0.5 block text-sm text-muted">{l.desc}</span>
+            <Link href={l.href} className="flex items-center gap-3 px-4 py-4 transition hover:bg-fill">
+              <span className="min-w-0 flex-1">
+                <span className="font-medium">{l.title}</span>
+                <span className="mt-0.5 block text-sm text-muted">{l.desc}</span>
+              </span>
+              <ChevronRight aria-hidden size={18} className="shrink-0 text-subtle" />
             </Link>
           </li>
         ))}
