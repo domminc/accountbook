@@ -61,7 +61,7 @@ export function BottomNav({ householdName }: { householdName?: string }) {
     <>
       <nav
         aria-label="메뉴"
-        className="fixed inset-x-0 bottom-0 z-10 border-t border-border/70 bg-surface/85 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-bar pb-[env(safe-area-inset-bottom)] backdrop-blur-xl backdrop-saturate-150 lg:hidden"
       >
         <ul className="mx-auto grid max-w-2xl grid-cols-5">
           {MOBILE.map((item) => {
@@ -83,9 +83,9 @@ export function BottomNav({ householdName }: { householdName?: string }) {
         </ul>
       </nav>
 
-      <nav aria-label="PC 메뉴" className="fixed inset-y-0 left-0 z-10 hidden w-60 flex-col overflow-y-auto border-r border-border/70 bg-surface px-4 py-6 lg:flex">
+      <nav aria-label="PC 메뉴" className="fixed inset-y-0 left-0 z-10 hidden w-60 flex-col overflow-y-auto border-r border-border bg-bar px-4 py-6 backdrop-blur-xl lg:flex">
         <Link href="/" className="flex items-center gap-2.5 px-2">
-          <span aria-hidden className="flex size-9 items-center justify-center rounded-xl bg-accent text-accent-foreground">
+          <span aria-hidden className="flex size-9 items-center justify-center cta rounded-[10px] shadow-[inset_0_1px_0_rgb(255_255_255/0.25)]">
             <Wallet size={20} strokeWidth={2.2} />
           </span>
           <span>
@@ -95,7 +95,7 @@ export function BottomNav({ householdName }: { householdName?: string }) {
         </Link>
         <Link
           href="/transactions/new"
-          className="mt-6 flex h-11 items-center justify-center gap-1.5 rounded-2xl bg-accent text-sm font-semibold text-accent-foreground shadow-sm transition hover:brightness-110 active:scale-[0.98]"
+          className="mt-6 flex h-11 items-center justify-center gap-1.5 cta rounded-xl text-sm font-semibold shadow-[inset_0_1px_0_rgb(255_255_255/0.2)] transition hover:brightness-110 active:scale-[0.98]"
         >
           <Plus aria-hidden size={18} strokeWidth={2.4} />
           거래 입력
@@ -113,7 +113,7 @@ export function BottomNav({ householdName }: { householdName?: string }) {
                       href={item.href}
                       aria-current={active ? "page" : undefined}
                       className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${
-                        active ? "bg-accent-soft font-semibold text-accent" : "text-foreground/80 hover:bg-fill hover:text-foreground"
+                        active ? "bg-accent-soft font-semibold text-foreground shadow-[inset_0_0_0_1px_rgb(139_147_255/0.25)]" : "text-muted hover:bg-fill hover:text-foreground"
                       }`}
                     >
                       <Icon aria-hidden size={18} strokeWidth={active ? 2.3 : 1.8} />

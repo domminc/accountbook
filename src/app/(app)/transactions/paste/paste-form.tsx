@@ -179,7 +179,7 @@ export function PasteForm({
         {pending && !rows ? "읽는 중…" : "문자 읽기"}
       </button>
 
-      <div className="rounded-2xl border border-dashed border-border bg-surface p-4">
+      <div className="rounded-2xl border border-dashed border-border-strong bg-fill/60 p-4">
         <label className="block">
           <span className="text-sm font-medium">카드 이용내역·명세서 파일</span>
           <span className="mt-0.5 block text-xs text-muted">
@@ -285,7 +285,7 @@ export function PasteForm({
               const n = `${i + 1}번째`;
               const disabled = s.cancelled;
               return (
-                <li key={r.key} className={`rounded-2xl border border-border bg-surface p-4 ${r.include ? "" : "opacity-70"}`}>
+                <li key={r.key} className={`tile rounded-2xl p-4 ${r.include ? "" : "opacity-70"}`}>
                   <label className="flex items-start gap-2">
                     <input
                       type="checkbox"
@@ -427,7 +427,7 @@ export function PasteForm({
                                   aria-label={`${n} 태그 ${t.name}`}
                                   onClick={() => update(r.key, { tagIds: on ? r.tagIds.filter((x) => x !== t.id) : [...r.tagIds, t.id] })}
                                   className={`h-8 rounded-full border px-3 text-xs ${
-                                    on ? "border-accent bg-accent text-accent-foreground" : "border-border bg-surface"
+                                    on ? "cta border-transparent" : "border-border bg-fill"
                                   }`}
                                 >
                                   #{t.name}

@@ -81,7 +81,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/transac
                       title={holiday ?? undefined}
                       aria-label={`${formatDateLabel(date)}${holiday ? ` ${holiday}` : ""} 지출 ${formatWon(spend)}원${c.noSpend ? ", 무지출" : ""}`}
                       className={`flex h-[4.5rem] flex-col items-center overflow-hidden rounded-xl pt-1 text-xs transition lg:h-24 ${
-                        isSelected ? "bg-accent text-accent-foreground" : c.noSpend ? "bg-accent/15" : "hover:bg-fill"
+                        isSelected ? "cta" : c.noSpend ? "bg-accent/15" : "hover:bg-fill"
                       }`}
                     >
                       <span

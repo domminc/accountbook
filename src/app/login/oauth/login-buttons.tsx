@@ -14,7 +14,7 @@ const PROVIDERS: { id: Provider; label: string; className: string }[] = [
   {
     id: "google",
     label: "구글로 계속하기",
-    className: "border border-border bg-surface text-foreground hover:bg-background",
+    className: "tile text-foreground hover:brightness-125",
   },
 ];
 

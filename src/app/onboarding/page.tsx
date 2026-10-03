@@ -10,7 +10,7 @@ export default async function OnboardingPage() {
 
   return (
     <main className="flex flex-1 items-center justify-center px-4 py-12">
-      <div className="w-full max-w-sm rounded-3xl bg-surface p-7 shadow-card sm:p-8">
+      <div className="w-full max-w-sm tile rounded-2xl p-7 sm:p-8">
         <BrandMark />
         <h1 className="text-2xl font-bold tracking-tight">가계부 만들기</h1>
         <p className="mt-2 text-muted">

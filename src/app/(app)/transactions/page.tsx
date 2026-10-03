@@ -192,7 +192,7 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
       <Link
         href={`/transactions/new?month=${month}`}
         aria-label="거래 입력"
-        className="fixed right-4 bottom-20 flex h-14 w-14 items-center justify-center rounded-full bg-accent text-3xl text-accent-foreground shadow-lg sm:right-[calc(50%-20rem)] lg:hidden"
+        className="fixed right-4 bottom-20 flex h-14 w-14 items-center justify-center cta rounded-full text-3xl shadow-[inset_0_1px_0_rgb(255_255_255/0.25),0_10px_30px_rgb(79_70_229/0.45)] sm:right-[calc(50%-20rem)] lg:hidden"
       >
         +
       </Link>

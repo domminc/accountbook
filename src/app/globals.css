@@ -1,41 +1,100 @@
 @import "tailwindcss";
 
 /*
- * 디자인 토큰. 밝은 회색 배경 위 흰 카드, 파란 포인트 (국내 금융 앱 톤).
- * 글자색은 배경·카드 모두에서 명암비 4.5:1 이상 (muted·accent·danger·warning 포함).
+ * 디자인: 루미너스 다크 벤토 (design-diversity web-luminous-dark-bento).
+ * 딥 차콜 캔버스 위에 1px 발광 테두리 타일, 자홍·인디고 라디얼 글로우는 화면 위쪽에만 절제해서.
+ * 기본은 다크. 설정 > 화면 테마에서 라이트·기기 설정으로 바꿀 수 있다 (<html data-theme>).
+ * 글자색은 배경·타일 모두에서 명암비 4.5:1 이상 (muted·accent·danger·warning·saturday 포함).
  */
 :root {
-  color-scheme: light dark;
-  --background: #f2f4f6;
-  --surface: #ffffff;
-  --fill: #eef1f4;
-  --segment: #ffffff;
-  --foreground: #191f28;
-  --muted: #5f6b78;
-  --border: #e3e7eb;
-  --accent: #2563eb;
-  --accent-soft: #eaf1ff;
+  color-scheme: dark;
+  --background: #08080b;
+  --surface: #101015;
+  --tile-top: #16161d;
+  --tile-bottom: #0e0e12;
+  --fill: #18181f;
+  --segment: #262630;
+  --foreground: #f4f4f6;
+  --muted: #a0a0aa;
+  --subtle: #6e6e78;
+  --border: rgb(255 255 255 / 0.1);
+  --border-strong: rgb(255 255 255 / 0.18);
+  --border-hover: rgb(255 255 255 / 0.24);
+  /* 글자·링크·포커스용 강조 (인디고). 넓은 면에는 쓰지 않는다 */
+  --accent: #8b93ff;
+  --accent-soft: rgb(99 102 241 / 0.16);
   --accent-foreground: #ffffff;
-  --danger: #d42d37;
-  --warning: #a4560a;
-  --shadow: 0 1px 2px rgb(16 24 40 / 0.04), 0 2px 8px rgb(16 24 40 / 0.05);
+  /* 1차 버튼만: 인디고 → 자홍 */
+  --cta-from: #4f46e5;
+  --cta-to: #a21caf;
+  --magenta: #e879f9;
+  --danger: #ff7a8a;
+  --warning: #f5b14c;
+  --saturday: #6cb6ff;
+  --glow-a: rgb(192 38 211 / 0.22);
+  --glow-b: rgb(99 102 241 / 0.16);
+  --shadow: inset 0 1px 0 rgb(255 255 255 / 0.04), 0 8px 24px rgb(0 0 0 / 0.4);
+  --bar: rgb(8 8 11 / 0.72);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #101014;
-    --surface: #1c1c22;
-    --fill: #272730;
-    --segment: #3a3a46;
-    --foreground: #eceef2;
-    --muted: #9ba3af;
-    --border: #2e2e38;
-    --accent: #4f93ff;
-    --accent-soft: #1a2a48;
-    --accent-foreground: #08152e;
-    --danger: #ff6b72;
-    --warning: #f0a63a;
-    --shadow: 0 0 0 1px rgb(255 255 255 / 0.05);
+/* 라이트: 같은 결(1px 테두리 타일, 위쪽 글로우)을 밝은 캔버스에 */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --background: #f4f4f7;
+  --surface: #ffffff;
+  --tile-top: #ffffff;
+  --tile-bottom: #fafafc;
+  --fill: #ececf1;
+  --segment: #ffffff;
+  --foreground: #0e0e12;
+  --muted: #5b5b66;
+  --subtle: #8a8a94;
+  --border: rgb(14 14 18 / 0.09);
+  --border-strong: rgb(14 14 18 / 0.06);
+  --border-hover: rgb(14 14 18 / 0.18);
+  --accent: #4f46e5;
+  --accent-soft: rgb(79 70 229 / 0.09);
+  --accent-foreground: #ffffff;
+  --cta-from: #4f46e5;
+  --cta-to: #a21caf;
+  --magenta: #a21caf;
+  --danger: #d42d37;
+  --warning: #a4560a;
+  --saturday: #1d5fd6;
+  --glow-a: rgb(192 38 211 / 0.12);
+  --glow-b: rgb(99 102 241 / 0.12);
+  --shadow: 0 1px 2px rgb(16 16 24 / 0.04), 0 8px 24px rgb(16 16 24 / 0.06);
+  --bar: rgb(255 255 255 / 0.8);
+}
+
+@media (prefers-color-scheme: light) {
+  :root[data-theme="system"] {
+    color-scheme: light;
+    --background: #f4f4f7;
+    --surface: #ffffff;
+    --tile-top: #ffffff;
+    --tile-bottom: #fafafc;
+    --fill: #ececf1;
+    --segment: #ffffff;
+    --foreground: #0e0e12;
+    --muted: #5b5b66;
+    --subtle: #8a8a94;
+    --border: rgb(14 14 18 / 0.09);
+    --border-strong: rgb(14 14 18 / 0.06);
+    --border-hover: rgb(14 14 18 / 0.18);
+    --accent: #4f46e5;
+    --accent-soft: rgb(79 70 229 / 0.09);
+    --accent-foreground: #ffffff;
+    --cta-from: #4f46e5;
+    --cta-to: #a21caf;
+    --magenta: #a21caf;
+    --danger: #d42d37;
+    --warning: #a4560a;
+    --saturday: #1d5fd6;
+    --glow-a: rgb(192 38 211 / 0.12);
+    --glow-b: rgb(99 102 241 / 0.12);
+    --shadow: 0 1px 2px rgb(16 16 24 / 0.04), 0 8px 24px rgb(16 16 24 / 0.06);
+    --bar: rgb(255 255 255 / 0.8);
   }
 }
 
@@ -46,13 +105,19 @@
   --color-segment: var(--segment);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
   --color-accent-foreground: var(--accent-foreground);
+  --color-magenta: var(--magenta);
   --color-danger: var(--danger);
   --color-warning: var(--warning);
+  --color-saturday: var(--saturday);
+  --color-bar: var(--bar);
   --shadow-card: var(--shadow);
+  --ease-snappy: cubic-bezier(0.16, 1, 0.3, 1);
   --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
     "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
 }
@@ -65,13 +130,94 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* 화면 위쪽 가운데 뒤에서 새어 나오는 자홍·인디고 글로우 (전면에 깔지 않는다) */
+body::before {
+  content: "";
+  position: fixed;
+  inset: -20vh 0 auto 0;
+  height: 70vh;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 45% 55% at 35% 30%, var(--glow-a), transparent 70%),
+    radial-gradient(ellipse 45% 55% at 65% 25%, var(--glow-b), transparent 70%);
+  filter: blur(24px);
+}
+
+@layer components {
+  /* 벤토 타일: 미세한 안쪽 그라디언트 + 1px 발광 테두리(위 가장자리가 더 밝음) + 부유 그림자 */
+  .tile {
+    background: linear-gradient(180deg, var(--tile-top) 0%, var(--tile-bottom) 100%);
+    border: 1px solid var(--border);
+    border-top-color: var(--border-strong);
+    box-shadow: var(--shadow);
+  }
+  /* 누르거나 올려 보는 타일: 테두리가 밝아지며 살짝 들린다 */
+  .tile-hover {
+    transition:
+      border-color 180ms var(--ease-snappy),
+      transform 180ms var(--ease-snappy);
+  }
+  @media (hover: hover) {
+    .tile-hover:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-3px);
+    }
+  }
+  /* 1차 버튼: 인디고 → 자홍 (버튼에만) */
+  .cta {
+    background: linear-gradient(135deg, var(--cta-from) 0%, var(--cta-to) 100%);
+    color: #ffffff;
+  }
+  /* 숫자 강조: 글자 가장자리에만 스미는 빛 */
+  .glow-text {
+    text-shadow: 0 0 24px rgb(139 147 255 / 0.25);
+  }
+  /* 화면에 들어올 때 타일이 살짝 떠오른다 */
+  .rise {
+    animation: rise 200ms var(--ease-snappy) both;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 아이콘: 1.5px 가는 선 */
+svg.lucide {
+  stroke-width: 1.6;
+}
+
 input[type="checkbox"],
 input[type="radio"] {
-  accent-color: var(--accent);
+  accent-color: var(--cta-from);
 }
 
 /* 키보드로 움직일 때만 보이는 포커스 테두리 */
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile-hover,
+  .tile-hover:hover {
+    transform: none;
+  }
+  .rise {
+    animation: fade 200ms both;
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
 }

@@ -311,7 +311,7 @@ function ChipGroup({
               aria-checked={on}
               onClick={() => onToggle(o.id)}
               className={`h-10 rounded-full border px-4 text-sm font-medium transition active:scale-95 ${
-                on ? "border-accent bg-accent text-accent-foreground shadow-sm" : "border-border bg-surface hover:bg-fill"
+                on ? "cta border-transparent" : "border-border bg-fill hover:border-border-strong"
               }`}
             >
               {o.name}
