@@ -85,7 +85,7 @@ export function BottomNav({ householdName }: { householdName?: string }) {
 
       <nav aria-label="PC 메뉴" className="fixed inset-y-0 left-0 z-10 hidden w-60 flex-col overflow-y-auto border-r border-border bg-bar px-4 py-6 backdrop-blur-xl lg:flex">
         <Link href="/" className="flex items-center gap-2.5 px-2">
-          <span aria-hidden className="flex size-9 items-center justify-center cta rounded-[10px] shadow-[inset_0_1px_0_rgb(255_255_255/0.25)]">
+          <span aria-hidden className="flex size-9 items-center justify-center cta rounded-lg shadow-[inset_0_1px_0_rgb(255_255_255/0.25)]">
             <Wallet size={20} strokeWidth={2.2} />
           </span>
           <span>

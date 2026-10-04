@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
-import { THEME_COOKIE, parseTheme } from "@/lib/theme";
+import { DESIGN_COOKIE, THEME_COOKIE, parseDesign, parseTheme } from "@/lib/theme";
 import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 import "./globals.css";
 
@@ -18,10 +18,12 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  // 기본은 다크. 설정 > 화면 테마에서 고른 값 (라이트·기기 설정)
-  const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
+  // 설정 > 화면에서 고른 밝기·디자인 (기본: 다크 · 루미너스 벤토)
+  const jar = await cookies();
+  const theme = parseTheme(jar.get(THEME_COOKIE)?.value);
+  const design = parseDesign(jar.get(DESIGN_COOKIE)?.value);
   return (
-    <html lang="ko" data-theme={theme} className="h-full antialiased">
+    <html lang="ko" data-theme={theme} data-design={design} className="h-full antialiased">
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

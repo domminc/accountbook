@@ -285,7 +285,7 @@ export function PasteForm({
               const n = `${i + 1}번째`;
               const disabled = s.cancelled;
               return (
-                <li key={r.key} className={`tile rounded-2xl p-4 ${r.include ? "" : "opacity-70"}`}>
+                <li key={r.key} className={`tile card rounded-2xl p-4 ${r.include ? "" : "opacity-70"}`}>
                   <label className="flex items-start gap-2">
                     <input
                       type="checkbox"

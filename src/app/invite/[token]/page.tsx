@@ -49,7 +49,7 @@ export default async function InvitePage({ params }: PageProps<"/invite/[token]"
 
   return (
     <main className="flex flex-1 items-center justify-center px-4 py-12">
-      <div className="w-full max-w-sm tile rounded-2xl p-7 sm:p-8">
+      <div className="w-full max-w-sm tile card rounded-2xl p-7 sm:p-8">
         <BrandMark />
         <h1 className="text-2xl font-bold tracking-tight">가계부 초대</h1>
         {body}

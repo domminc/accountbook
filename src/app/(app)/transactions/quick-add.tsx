@@ -65,7 +65,7 @@ export function QuickAdd({
         const formData = new FormData(e.currentTarget);
         startTransition(() => formAction(formData));
       }}
-      className="tile rounded-2xl p-3"
+      className="tile card rounded-2xl p-3"
     >
       <input type="hidden" name="intent" value="more" />
       <div className="grid grid-cols-[8.5rem_minmax(8rem,1.2fr)_7rem_minmax(7rem,1fr)_minmax(8rem,1.5fr)_auto] items-center gap-2">
@@ -136,7 +136,7 @@ export function QuickAdd({
           aria-label="내용"
           className={smallInputClass}
         />
-        <button type="submit" disabled={pending} className="h-10 cta rounded-[10px] px-4 text-sm font-semibold disabled:opacity-60">
+        <button type="submit" disabled={pending} className="h-10 cta rounded-lg px-4 text-sm font-semibold disabled:opacity-60">
           {pending ? "저장 중…" : "추가"}
         </button>
       </div>
