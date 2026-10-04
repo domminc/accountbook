@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
-import { DESIGN_COOKIE, THEME_COOKIE, parseDesign, parseTheme } from "@/lib/theme";
+import { DESIGN_COOKIE, THEME_COOKIE, parseDesign, parseTheme, themeColor } from "@/lib/theme";
 import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 import "./globals.css";
 
@@ -10,12 +10,15 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, title: "가계부", statusBarStyle: "black" },
 };
 
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  viewportFit: "cover",
-  themeColor: "#08080b",
-};
+export async function generateViewport(): Promise<Viewport> {
+  const jar = await cookies();
+  return {
+    width: "device-width",
+    initialScale: 1,
+    viewportFit: "cover",
+    themeColor: themeColor(parseDesign(jar.get(DESIGN_COOKIE)?.value), parseTheme(jar.get(THEME_COOKIE)?.value)),
+  };
+}
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   // 설정 > 화면에서 고른 밝기·디자인 (기본: 다크 · 루미너스 벤토)
