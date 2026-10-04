@@ -4,7 +4,7 @@
  * 디자인: 루미너스 다크 벤토 (design-diversity web-luminous-dark-bento).
  * 딥 차콜 캔버스 위에 1px 발광 테두리 타일, 자홍·인디고 라디얼 글로우는 화면 위쪽에만 절제해서.
  * 기본은 다크. 설정 > 화면에서 밝기(<html data-theme>: dark·light·system)와
- * 디자인(<html data-design>: bento 기본·noir 이리데센트 누아르)을 고른다.
+ * 디자인(<html data-design>: bento 기본·fintech 정밀 핀테크)을 고른다.
  * 글자색은 배경·타일 모두에서 명암비 4.5:1 이상 (muted·accent·danger·warning·saturday 포함).
  */
 :root {
@@ -101,111 +101,98 @@
 
 
 /*
- * 이리데센트 누아르 (design-diversity web-iridescent-noir-prestige).
- * 균질한 잉크 블랙, 둥글지 않은 카드(2px), 그림자 없음. 실버·바이올렛·시안 이리데센트는
- * 카드의 1px 테두리와 큰 숫자 가장자리, 화면 맨 위 가는 선에만. 작은 라벨은 등폭.
+ * 정밀 핀테크 (design-diversity web-precision-fintech).
+ * 오프화이트 캔버스, 잉크 네이비 글자, 1px 헤어라인 카드(10px), 인디고는 링크·버튼·활성에만.
+ * 그라디언트는 화면 맨 위 파스텔 밴드 한 곳뿐이고, 숫자는 모두 같은 폭(tabular-nums).
+ * 밝기를 다크로 하면 같은 규칙의 잉크 네이비 판.
  */
-:root[data-design="noir"] {
+:root[data-design="fintech"] {
   color-scheme: dark;
-  --background: #08080a;
-  --surface: #0e0e12;
-  --tile-top: #0e0e12;
-  --tile-bottom: #0e0e12;
-  --fill: #131318;
-  --segment: #1d1d24;
-  --foreground: #eceaf0;
-  --muted: #9a98a5;
-  --subtle: #6a6874;
-  --border: #1d1d24;
-  --border-strong: #2a2a33;
-  --border-hover: #3a3a46;
-  --accent: #b3a4f6;
-  --accent-soft: rgb(155 127 232 / 0.12);
-  --cta-from: #9b7fe8;
-  --cta-to: #5fd4e0;
-  --magenta: #5fd4e0;
-  --danger: #ff8597;
-  --warning: #f2b45a;
-  --saturday: #5fd4e0;
+  --background: #0c1220;
+  --surface: #131a2b;
+  --tile-top: #131a2b;
+  --tile-bottom: #131a2b;
+  --fill: #1a2236;
+  --segment: #232c44;
+  --foreground: #e8ebf2;
+  --muted: #98a2b3;
+  --subtle: #6b7586;
+  --border: #232c42;
+  --border-strong: #2f3a54;
+  --border-hover: #8b93ff;
+  --accent: #9aa2ff;
+  --accent-soft: rgb(99 102 241 / 0.16);
+  --cta-from: #4f46e5;
+  --cta-to: #4f46e5;
+  --magenta: #4f46e5;
+  --danger: #ff7a8a;
+  --warning: #f5b14c;
+  --saturday: #6cb6ff;
   --glow-a: transparent;
   --glow-b: transparent;
-  --shadow: none;
-  --bar: rgb(8 8 10 / 0.92);
-  --iri: linear-gradient(110deg, #c9c9d4 0%, #9b7fe8 22%, #5fd4e0 44%, #c9c9d4 62%, #9b7fe8 80%, #5fd4e0 100%);
-  --iri-line: linear-gradient(110deg, rgb(201 201 212 / 0.45) 0%, rgb(155 127 232 / 0.6) 22%, rgb(95 212 224 / 0.5) 44%, rgb(201 201 212 / 0.3) 62%, rgb(155 127 232 / 0.6) 80%, rgb(95 212 224 / 0.5) 100%);
-  --cta-bg: #eceaf0;
-  --cta-fg: #08080a;
-  --radius-sm: 2px;
-  --radius-md: 2px;
-  --radius-lg: 2px;
-  --radius-xl: 3px;
-  --radius-2xl: 3px;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+  --bar: rgb(12 18 32 / 0.9);
+  --band: linear-gradient(105deg, #2b2a3a 0%, #3a2d3d 26%, #30305a 58%, #272d5c 82%, #232a58 100%);
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 8px;
+  --radius-xl: 8px;
+  --radius-2xl: 10px;
 }
 
-:root[data-design="noir"][data-theme="light"] {
+:root[data-design="fintech"][data-theme="light"] {
   color-scheme: light;
-  --background: #f6f5f8;
+  --background: #f6f5f3;
   --surface: #ffffff;
   --tile-top: #ffffff;
   --tile-bottom: #ffffff;
-  --fill: #efeef3;
+  --fill: #efede9;
   --segment: #ffffff;
-  --foreground: #0b0b0f;
-  --muted: #5a5866;
-  --subtle: #8b8995;
-  --border: #e2e0e8;
-  --border-strong: #d4d2dc;
-  --border-hover: #b9b6c4;
-  --accent: #5b45c9;
-  --accent-soft: rgb(91 69 201 / 0.08);
-  --cta-from: #5b45c9;
-  --cta-to: #1f8f9c;
-  --magenta: #1f8f9c;
-  --danger: #c7283a;
-  --warning: #9a5208;
-  --saturday: #1f6fb8;
-  --bar: rgb(255 255 255 / 0.92);
-  --iri: linear-gradient(110deg, #9a9aa8 0%, #7b5fd8 22%, #2aa5b3 44%, #9a9aa8 62%, #7b5fd8 80%, #2aa5b3 100%);
-  --iri-line: linear-gradient(110deg, rgb(154 154 168 / 0.5) 0%, rgb(123 95 216 / 0.6) 22%, rgb(42 165 179 / 0.55) 44%, rgb(154 154 168 / 0.35) 62%, rgb(123 95 216 / 0.6) 80%, rgb(42 165 179 / 0.55) 100%);
-  --cta-bg: #0b0b0f;
-  --cta-fg: #ffffff;
+  --foreground: #1a2233;
+  --muted: #5b6472;
+  --subtle: #7b8491;
+  --border: #e4e2dd;
+  --border-strong: #d6d3cc;
+  --border-hover: #4f46e5;
+  --accent: #4f46e5;
+  --accent-soft: rgb(79 70 229 / 0.08);
+  --danger: #d42d37;
+  --warning: #a4560a;
+  --saturday: #1d5fd6;
+  --shadow: 0 1px 2px rgb(26 34 51 / 0.05);
+  --bar: rgb(246 245 243 / 0.9);
+  --band: linear-gradient(105deg, #fef6e4 0%, #fcd9c6 26%, #e6d6f5 58%, #cdd3f5 82%, #c3c9f0 100%);
 }
 
 @media (prefers-color-scheme: light) {
-  :root[data-design="noir"][data-theme="system"] {
+  :root[data-design="fintech"][data-theme="system"] {
     color-scheme: light;
-    --background: #f6f5f8;
+    --background: #f6f5f3;
     --surface: #ffffff;
     --tile-top: #ffffff;
     --tile-bottom: #ffffff;
-    --fill: #efeef3;
+    --fill: #efede9;
     --segment: #ffffff;
-    --foreground: #0b0b0f;
-    --muted: #5a5866;
-    --subtle: #8b8995;
-    --border: #e2e0e8;
-    --border-strong: #d4d2dc;
-    --border-hover: #b9b6c4;
-    --accent: #5b45c9;
-    --accent-soft: rgb(91 69 201 / 0.08);
-    --cta-from: #5b45c9;
-    --cta-to: #1f8f9c;
-    --magenta: #1f8f9c;
-    --danger: #c7283a;
-    --warning: #9a5208;
-    --saturday: #1f6fb8;
-    --bar: rgb(255 255 255 / 0.92);
-    --iri: linear-gradient(110deg, #9a9aa8 0%, #7b5fd8 22%, #2aa5b3 44%, #9a9aa8 62%, #7b5fd8 80%, #2aa5b3 100%);
-    --iri-line: linear-gradient(110deg, rgb(154 154 168 / 0.5) 0%, rgb(123 95 216 / 0.6) 22%, rgb(42 165 179 / 0.55) 44%, rgb(154 154 168 / 0.35) 62%, rgb(123 95 216 / 0.6) 80%, rgb(42 165 179 / 0.55) 100%);
-    --cta-bg: #0b0b0f;
-    --cta-fg: #ffffff;
+    --foreground: #1a2233;
+    --muted: #5b6472;
+    --subtle: #7b8491;
+    --border: #e4e2dd;
+    --border-strong: #d6d3cc;
+    --border-hover: #4f46e5;
+    --accent: #4f46e5;
+    --accent-soft: rgb(79 70 229 / 0.08);
+    --danger: #d42d37;
+    --warning: #a4560a;
+    --saturday: #1d5fd6;
+    --shadow: 0 1px 2px rgb(26 34 51 / 0.05);
+    --bar: rgb(246 245 243 / 0.9);
+    --band: linear-gradient(105deg, #fef6e4 0%, #fcd9c6 26%, #e6d6f5 58%, #cdd3f5 82%, #c3c9f0 100%);
   }
 }
 
-/* 모서리·등폭 글꼴: 디자인마다 바꿀 수 있게 inline 이 아닌 변수로 둔다 */
+/* 모서리: 디자인마다 바꿀 수 있게 inline 이 아닌 변수로 둔다 */
 @theme {
   --radius-lg: 10px;
-  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "D2Coding", monospace;
 }
 
 @theme inline {
@@ -301,84 +288,49 @@ body::before {
 }
 
 
-/* ── 이리데센트 누아르 모양 ── */
-:root[data-design="noir"] body::before {
-  /* 글로우 대신 화면 맨 위 가는 이리데센트 선이 천천히 흐른다 */
+/* ── 정밀 핀테크 모양 ── */
+:root[data-design="fintech"] body {
+  font-variant-numeric: tabular-nums;
+}
+/* 화면 맨 위 약 1/3: 이 디자인의 유일한 그라디언트. 본문 쪽으로는 서서히 사라진다 */
+:root[data-design="fintech"] body::before {
+  position: absolute;
   inset: 0 0 auto 0;
-  height: 1px;
+  height: 38vh;
+  min-height: 240px;
   filter: none;
-  background: var(--iri);
-  background-size: 300% 100%;
-  opacity: 0.8;
-  z-index: 50;
-  animation: iri-flow 12s linear infinite;
+  background: var(--band);
+  -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
+  mask-image: linear-gradient(to bottom, #000 55%, transparent);
 }
-:root[data-design="noir"] .tile {
+/* 카드: 솔리드 면 + 1px 헤어라인 + 아주 얇은 그림자 */
+:root[data-design="fintech"] .tile {
   background: var(--surface);
-  box-shadow: none;
+  border-top-color: var(--border);
+  box-shadow: var(--shadow);
 }
-/* 카드: 1px 이리데센트 헤어라인 (면은 솔리드) */
-:root[data-design="noir"] .card {
-  border: 1px solid transparent;
-  background:
-    linear-gradient(var(--surface), var(--surface)) padding-box,
-    var(--iri-line) border-box;
-  background-size:
-    100% 100%,
-    300% 100%;
-  animation: iri-flow-line 14s linear infinite;
-}
-:root[data-design="noir"] .tile-hover:hover {
+:root[data-design="fintech"] .tile-hover:hover {
   transform: translateY(-2px);
 }
-/* 1차 버튼: 그라디언트 면 대신 쿨 오프화이트(라이트에선 잉크) 솔리드 */
-:root[data-design="noir"] .cta {
-  background: var(--cta-bg);
-  color: var(--cta-fg);
+/* 버튼: 그라디언트 없이 인디고 솔리드 */
+:root[data-design="fintech"] .cta {
+  background: var(--cta-from);
+  color: #ffffff;
   box-shadow: none;
 }
-/* 큰 숫자: 가장자리에 스미는 실버·바이올렛·시안 */
-:root[data-design="noir"] .glow-text {
-  font-weight: 400;
-  text-shadow: none;
-  background: var(--iri);
-  background-size: 300% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: iri-flow 12s linear infinite;
-}
-/* 작은 라벨: 등폭, 넓은 자간 */
-:root[data-design="noir"] .eyebrow {
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  /* 한글은 넓은 자간이 벌어져 보여 명세(0.14em)보다 좁게 */
-  letter-spacing: 0.06em;
-  font-weight: 400;
-}
-:root[data-design="noir"] h1,
-:root[data-design="noir"] h2 {
+/* 큰 숫자: 빛 없이 가는 500 웨이트 */
+:root[data-design="fintech"] .glow-text {
   font-weight: 500;
-  letter-spacing: -0.022em;
+  text-shadow: none;
+  letter-spacing: -0.035em;
 }
-
-@keyframes iri-flow {
-  to {
-    background-position: 300% 0;
-  }
+:root[data-design="fintech"] h1,
+:root[data-design="fintech"] h2 {
+  font-weight: 500;
+  letter-spacing: -0.025em;
 }
-/* 카드 테두리: 첫 층(면)은 그대로, 둘째 층(테두리 빛)만 흐른다 */
-@keyframes iri-flow-line {
-  from {
-    background-position:
-      0 0,
-      0% 0;
-  }
-  to {
-    background-position:
-      0 0,
-      300% 0;
-  }
+:root[data-design="fintech"] .eyebrow {
+  letter-spacing: 0.04em;
 }
 
 /* 아이콘: 1.5px 가는 선 */
@@ -402,11 +354,8 @@ input[type="radio"] {
   .tile-hover:hover {
     transform: none;
   }
-  /* 이리데센트는 흐르지 않고 고정된 금속 빛으로 */
-  :root[data-design="noir"] body::before,
-  :root[data-design="noir"] .card,
-  :root[data-design="noir"] .glow-text {
-    animation: none;
+  :root[data-design="fintech"] .tile-hover:hover {
+    transform: none;
   }
   .rise {
     animation: fade 200ms both;
