@@ -2,7 +2,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { ChevronRight } from "lucide-react";
 import { cardClass, segmentGroupClass, segmentItemClass } from "@/components/ui";
-import { THEME_COOKIE, THEME_LABEL, THEMES, parseTheme } from "@/lib/theme";
+import { DESIGN_COOKIE, DESIGN_DESC, DESIGN_LABEL, DESIGNS, THEME_COOKIE, THEME_LABEL, THEMES, parseDesign, parseTheme } from "@/lib/theme";
 import { setTheme } from "./theme/actions";
 
 const LINKS = [
@@ -16,16 +16,35 @@ const LINKS = [
 ];
 
 export default async function SettingsPage() {
-  const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
+  const jar = await cookies();
+  const theme = parseTheme(jar.get(THEME_COOKIE)?.value);
+  const design = parseDesign(jar.get(DESIGN_COOKIE)?.value);
   return (
     <div>
       <h1 className="text-xl font-bold">설정</h1>
       <section aria-labelledby="theme-title" className={`mt-4 p-4 ${cardClass}`}>
         <h2 id="theme-title" className="font-medium">
-          화면 테마
+          화면
         </h2>
         <p className="mt-0.5 text-sm text-muted">이 기기에만 적용돼요.</p>
-        <form action={setTheme} className={`mt-3 grid-cols-3 ${segmentGroupClass}`}>
+        <p className="eyebrow mt-4 text-xs font-medium text-muted">디자인</p>
+        <form action={setTheme} className="mt-1.5 grid gap-2 sm:grid-cols-2">
+          {DESIGNS.map((d) => (
+            <button
+              key={d}
+              type="submit"
+              name="design"
+              value={d}
+              aria-pressed={design === d}
+              className={`tile rounded-xl px-4 py-3 text-left transition ${design === d ? "border-accent ring-2 ring-accent/30" : "hover:border-border-strong"}`}
+            >
+              <span className="block font-semibold">{DESIGN_LABEL[d]}</span>
+              <span className="mt-0.5 block text-xs text-muted">{DESIGN_DESC[d]}</span>
+            </button>
+          ))}
+        </form>
+        <p className="eyebrow mt-4 text-xs font-medium text-muted">밝기</p>
+        <form action={setTheme} className={`mt-1.5 grid-cols-3 ${segmentGroupClass}`}>
           {THEMES.map((t) => (
             <button key={t} type="submit" name="theme" value={t} aria-pressed={theme === t} className={segmentItemClass(theme === t)}>
               {THEME_LABEL[t]}

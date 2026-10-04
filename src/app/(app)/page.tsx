@@ -167,16 +167,16 @@ function SummaryBento({
 }) {
   const spend = cells.map((c) => ({ date: c.date, amount: c.fixed + c.variable }));
   const max = Math.max(1, ...spend.map((d) => d.amount));
-  const metric = "tile rise relative flex min-w-0 flex-col justify-between rounded-2xl p-4 sm:col-span-2";
+  const metric = "tile card rise relative flex min-w-0 flex-col justify-between rounded-2xl p-4 sm:col-span-2";
   return (
     <section aria-label="이달 요약" className="grid grid-cols-2 gap-3 sm:grid-cols-6 lg:gap-4">
-      <div className="tile rise relative col-span-2 flex min-h-56 flex-col overflow-hidden rounded-2xl p-5 sm:col-span-4 sm:row-span-2 lg:p-6">
+      <div className="tile card rise relative col-span-2 flex min-h-56 flex-col overflow-hidden rounded-2xl p-5 sm:col-span-4 sm:row-span-2 lg:p-6">
         {/* 타일 뒤에서 새어 나오는 글로우 */}
         <div
           aria-hidden
           className="pointer-events-none absolute -top-28 -right-20 size-80 rounded-full bg-[radial-gradient(circle,var(--glow-a)_0%,var(--glow-b)_40%,transparent_70%)] blur-2xl"
         />
-        <p className="relative text-sm text-muted">남은 금액 · 수입 − 지출</p>
+        <p className="eyebrow relative text-sm text-muted">남은 금액 · 수입 − 지출</p>
         <p className="relative mt-2 text-[2.5rem] leading-[1.06] font-semibold tracking-[-0.03em] break-all tabular-nums glow-text lg:text-[3.25rem]">
           {formatWon(totals.remaining)}
           <span className="ml-1 text-xl font-medium text-muted lg:text-2xl">원</span>
@@ -188,7 +188,7 @@ function SummaryBento({
         ) : null}
         <div className="relative mt-auto pt-6">
           <div className="flex items-baseline justify-between text-xs text-muted">
-            <span>날마다 지출</span>
+            <span className="eyebrow">날마다 지출</span>
             <span className="tabular-nums">
               고정 {formatWon(totals.fixed)} · 비고정 {formatWon(totals.variable)}
             </span>
@@ -222,7 +222,7 @@ function SummaryBento({
         delta={<span className="text-xs text-muted">수입 중 저축</span>}
       />
 
-      <div className="tile rise col-span-2 flex flex-col gap-2 rounded-2xl p-3 sm:col-span-2">
+      <div className="tile card rise col-span-2 flex flex-col gap-2 rounded-2xl p-3 sm:col-span-2">
         <Link href={`/transactions/new?month=${month}`} className={`flex items-center justify-center ${primaryButtonClass}`}>
           거래 입력
         </Link>
@@ -245,7 +245,7 @@ function SummaryBento({
 function Metric({ className, label, value, delta }: { className: string; label: string; value: string; delta: ReactNode }) {
   return (
     <div className={className}>
-      <p className="text-xs font-medium tracking-[0.04em] text-muted">{label}</p>
+      <p className="eyebrow text-xs font-medium tracking-[0.04em] text-muted">{label}</p>
       <p className="mt-3 text-xl font-semibold tracking-[-0.02em] break-all tabular-nums lg:text-2xl">{value}</p>
       <div className="mt-1">{delta}</div>
     </div>

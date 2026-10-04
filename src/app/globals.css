@@ -3,7 +3,8 @@
 /*
  * 디자인: 루미너스 다크 벤토 (design-diversity web-luminous-dark-bento).
  * 딥 차콜 캔버스 위에 1px 발광 테두리 타일, 자홍·인디고 라디얼 글로우는 화면 위쪽에만 절제해서.
- * 기본은 다크. 설정 > 화면 테마에서 라이트·기기 설정으로 바꿀 수 있다 (<html data-theme>).
+ * 기본은 다크. 설정 > 화면에서 밝기(<html data-theme>: dark·light·system)와
+ * 디자인(<html data-design>: bento 기본·noir 이리데센트 누아르)을 고른다.
  * 글자색은 배경·타일 모두에서 명암비 4.5:1 이상 (muted·accent·danger·warning·saturday 포함).
  */
 :root {
@@ -98,6 +99,115 @@
   }
 }
 
+
+/*
+ * 이리데센트 누아르 (design-diversity web-iridescent-noir-prestige).
+ * 균질한 잉크 블랙, 둥글지 않은 카드(2px), 그림자 없음. 실버·바이올렛·시안 이리데센트는
+ * 카드의 1px 테두리와 큰 숫자 가장자리, 화면 맨 위 가는 선에만. 작은 라벨은 등폭.
+ */
+:root[data-design="noir"] {
+  color-scheme: dark;
+  --background: #08080a;
+  --surface: #0e0e12;
+  --tile-top: #0e0e12;
+  --tile-bottom: #0e0e12;
+  --fill: #131318;
+  --segment: #1d1d24;
+  --foreground: #eceaf0;
+  --muted: #9a98a5;
+  --subtle: #6a6874;
+  --border: #1d1d24;
+  --border-strong: #2a2a33;
+  --border-hover: #3a3a46;
+  --accent: #b3a4f6;
+  --accent-soft: rgb(155 127 232 / 0.12);
+  --cta-from: #9b7fe8;
+  --cta-to: #5fd4e0;
+  --magenta: #5fd4e0;
+  --danger: #ff8597;
+  --warning: #f2b45a;
+  --saturday: #5fd4e0;
+  --glow-a: transparent;
+  --glow-b: transparent;
+  --shadow: none;
+  --bar: rgb(8 8 10 / 0.92);
+  --iri: linear-gradient(110deg, #c9c9d4 0%, #9b7fe8 22%, #5fd4e0 44%, #c9c9d4 62%, #9b7fe8 80%, #5fd4e0 100%);
+  --iri-line: linear-gradient(110deg, rgb(201 201 212 / 0.45) 0%, rgb(155 127 232 / 0.6) 22%, rgb(95 212 224 / 0.5) 44%, rgb(201 201 212 / 0.3) 62%, rgb(155 127 232 / 0.6) 80%, rgb(95 212 224 / 0.5) 100%);
+  --cta-bg: #eceaf0;
+  --cta-fg: #08080a;
+  --radius-sm: 2px;
+  --radius-md: 2px;
+  --radius-lg: 2px;
+  --radius-xl: 3px;
+  --radius-2xl: 3px;
+}
+
+:root[data-design="noir"][data-theme="light"] {
+  color-scheme: light;
+  --background: #f6f5f8;
+  --surface: #ffffff;
+  --tile-top: #ffffff;
+  --tile-bottom: #ffffff;
+  --fill: #efeef3;
+  --segment: #ffffff;
+  --foreground: #0b0b0f;
+  --muted: #5a5866;
+  --subtle: #8b8995;
+  --border: #e2e0e8;
+  --border-strong: #d4d2dc;
+  --border-hover: #b9b6c4;
+  --accent: #5b45c9;
+  --accent-soft: rgb(91 69 201 / 0.08);
+  --cta-from: #5b45c9;
+  --cta-to: #1f8f9c;
+  --magenta: #1f8f9c;
+  --danger: #c7283a;
+  --warning: #9a5208;
+  --saturday: #1f6fb8;
+  --bar: rgb(255 255 255 / 0.92);
+  --iri: linear-gradient(110deg, #9a9aa8 0%, #7b5fd8 22%, #2aa5b3 44%, #9a9aa8 62%, #7b5fd8 80%, #2aa5b3 100%);
+  --iri-line: linear-gradient(110deg, rgb(154 154 168 / 0.5) 0%, rgb(123 95 216 / 0.6) 22%, rgb(42 165 179 / 0.55) 44%, rgb(154 154 168 / 0.35) 62%, rgb(123 95 216 / 0.6) 80%, rgb(42 165 179 / 0.55) 100%);
+  --cta-bg: #0b0b0f;
+  --cta-fg: #ffffff;
+}
+
+@media (prefers-color-scheme: light) {
+  :root[data-design="noir"][data-theme="system"] {
+    color-scheme: light;
+    --background: #f6f5f8;
+    --surface: #ffffff;
+    --tile-top: #ffffff;
+    --tile-bottom: #ffffff;
+    --fill: #efeef3;
+    --segment: #ffffff;
+    --foreground: #0b0b0f;
+    --muted: #5a5866;
+    --subtle: #8b8995;
+    --border: #e2e0e8;
+    --border-strong: #d4d2dc;
+    --border-hover: #b9b6c4;
+    --accent: #5b45c9;
+    --accent-soft: rgb(91 69 201 / 0.08);
+    --cta-from: #5b45c9;
+    --cta-to: #1f8f9c;
+    --magenta: #1f8f9c;
+    --danger: #c7283a;
+    --warning: #9a5208;
+    --saturday: #1f6fb8;
+    --bar: rgb(255 255 255 / 0.92);
+    --iri: linear-gradient(110deg, #9a9aa8 0%, #7b5fd8 22%, #2aa5b3 44%, #9a9aa8 62%, #7b5fd8 80%, #2aa5b3 100%);
+    --iri-line: linear-gradient(110deg, rgb(154 154 168 / 0.5) 0%, rgb(123 95 216 / 0.6) 22%, rgb(42 165 179 / 0.55) 44%, rgb(154 154 168 / 0.35) 62%, rgb(123 95 216 / 0.6) 80%, rgb(42 165 179 / 0.55) 100%);
+    --cta-bg: #0b0b0f;
+    --cta-fg: #ffffff;
+  }
+}
+
+/* 모서리·등폭 글꼴: 디자인마다 바꿀 수 있게 inline 이 아닌 변수로 둔다 */
+@theme {
+  --radius-lg: 10px;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "D2Coding", monospace;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-surface: var(--surface);
@@ -190,6 +300,87 @@ body::before {
   }
 }
 
+
+/* ── 이리데센트 누아르 모양 ── */
+:root[data-design="noir"] body::before {
+  /* 글로우 대신 화면 맨 위 가는 이리데센트 선이 천천히 흐른다 */
+  inset: 0 0 auto 0;
+  height: 1px;
+  filter: none;
+  background: var(--iri);
+  background-size: 300% 100%;
+  opacity: 0.8;
+  z-index: 50;
+  animation: iri-flow 12s linear infinite;
+}
+:root[data-design="noir"] .tile {
+  background: var(--surface);
+  box-shadow: none;
+}
+/* 카드: 1px 이리데센트 헤어라인 (면은 솔리드) */
+:root[data-design="noir"] .card {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    var(--iri-line) border-box;
+  background-size:
+    100% 100%,
+    300% 100%;
+  animation: iri-flow-line 14s linear infinite;
+}
+:root[data-design="noir"] .tile-hover:hover {
+  transform: translateY(-2px);
+}
+/* 1차 버튼: 그라디언트 면 대신 쿨 오프화이트(라이트에선 잉크) 솔리드 */
+:root[data-design="noir"] .cta {
+  background: var(--cta-bg);
+  color: var(--cta-fg);
+  box-shadow: none;
+}
+/* 큰 숫자: 가장자리에 스미는 실버·바이올렛·시안 */
+:root[data-design="noir"] .glow-text {
+  font-weight: 400;
+  text-shadow: none;
+  background: var(--iri);
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: iri-flow 12s linear infinite;
+}
+/* 작은 라벨: 등폭, 넓은 자간 */
+:root[data-design="noir"] .eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  /* 한글은 넓은 자간이 벌어져 보여 명세(0.14em)보다 좁게 */
+  letter-spacing: 0.06em;
+  font-weight: 400;
+}
+:root[data-design="noir"] h1,
+:root[data-design="noir"] h2 {
+  font-weight: 500;
+  letter-spacing: -0.022em;
+}
+
+@keyframes iri-flow {
+  to {
+    background-position: 300% 0;
+  }
+}
+/* 카드 테두리: 첫 층(면)은 그대로, 둘째 층(테두리 빛)만 흐른다 */
+@keyframes iri-flow-line {
+  from {
+    background-position:
+      0 0,
+      0% 0;
+  }
+  to {
+    background-position:
+      0 0,
+      300% 0;
+  }
+}
+
 /* 아이콘: 1.5px 가는 선 */
 svg.lucide {
   stroke-width: 1.6;
@@ -210,6 +401,12 @@ input[type="radio"] {
   .tile-hover,
   .tile-hover:hover {
     transform: none;
+  }
+  /* 이리데센트는 흐르지 않고 고정된 금속 빛으로 */
+  :root[data-design="noir"] body::before,
+  :root[data-design="noir"] .card,
+  :root[data-design="noir"] .glow-text {
+    animation: none;
   }
   .rise {
     animation: fade 200ms both;
